@@ -107,7 +107,7 @@ void ComputeRayTracingHeating (gas_density, bsys)
 	nstar = IrrSources->nb;
 
 	//Function
-	if (( nstar == 1 ) || ( BinaryOn == NO )) {
+	if ( nstar == 1 ) {
 		ComputeSingleSourceRT(gas_density);
 	} else {
 		ComputeBinarySourceRT(gas_density, bsys);
