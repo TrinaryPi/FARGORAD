@@ -10,11 +10,14 @@ int dimfxy;
   int i;
   Force *force;
   real *globalforce;
-  force  = (Force *) prs_malloc (sizeof(Force));
-  globalforce = (real *) prs_malloc (sizeof(real) * 4 * dimfxy);
-  for (i = 0; i < 4*dimfxy; i++)
-    globalforce[i] = 0.;
+
+  force  = (Force *) prs_malloc(sizeof(Force));
+  globalforce = (real *) prs_malloc(sizeof(real)*4*dimfxy);
+  for (i = 0; i < 4*dimfxy; i++) {
+    globalforce[i] = 0.0;
+  }
   force->GlobalForce = globalforce;
+
   return force;
 }
 
@@ -36,16 +39,19 @@ void ComputeForce (force, Rho, x, y, rsmoothing, mass, dimfxy)
   real *fxi, *fxo, *fyi, *fyo;
   real *localforce, *globalforce;
   real *dens, *abs, *ord;
-  fxi = (real *) prs_malloc (sizeof(real) * dimfxy);
-  fxo = (real *) prs_malloc (sizeof(real) * dimfxy);
-  fyi = (real *) prs_malloc (sizeof(real) * dimfxy);
-  fyo = (real *) prs_malloc (sizeof(real) * dimfxy);
-  localforce = (real *) prs_malloc (sizeof(real) * 4 * dimfxy);
+
+  localforce = (real *)prs_malloc(sizeof(real)*4*dimfxy);
   globalforce = force->GlobalForce;
   ns = Rho->Nsec;
   dens = Rho->Field;
   abs = CellAbscissa->Field;
   ord = CellOrdinate->Field;
+
+  fxi = (real *)prs_malloc(sizeof(real)*dimfxy);
+  fxo = (real *)prs_malloc(sizeof(real)*dimfxy);
+  fyi = (real *)prs_malloc(sizeof(real)*dimfxy);
+  fyo = (real *)prs_malloc(sizeof(real)*dimfxy);
+
   a = sqrt(x*x+y*y);
   rh = pow(mass/3.0, 1.0/3.0)*a+1e-15;
   for ( k = 0; k < dimfxy; k++ ) {
@@ -58,7 +64,7 @@ void ComputeForce (force, Rho, x, y, rsmoothing, mass, dimfxy)
     localforce[k] = 0.0;
     globalforce[k] = 0.0;
   }
-  if (FakeSequential && (CPU_Rank > 0)) {
+  if (( FakeSequential ) && ( CPU_Rank > 0 )) {
     MPI_Recv (&globalforce[0], 4*dimfxy, MPI_DOUBLE, CPU_Rank-1, 27, MPI_COMM_WORLD, &stat);
     for ( k = 0; k < dimfxy; k++ ) {
       fxi[k] = globalforce [k];
@@ -86,9 +92,10 @@ void ComputeForce (force, Rho, x, y, rsmoothing, mass, dimfxy)
         if ( k != 0 ) {
           rh *= hillcutfactor;
           hill_cut = 1.0-exp(-d2/(rh*rh));
-        } else
+        } else {
           hill_cut = 1.0;
-        if (Rmed[i] < a) {
+        }
+        if ( Rmed[i] < a ) {
 #pragma omp atomic
           fxi[k] += G*cellmass*dx*InvDist3*hill_cut;
 #pragma omp atomic
@@ -102,15 +109,16 @@ void ComputeForce (force, Rho, x, y, rsmoothing, mass, dimfxy)
       }
     }
   }
-  if (FakeSequential) {
+  if ( FakeSequential ) {
     for ( k = 0; k < dimfxy; k++ ) {
       globalforce [k]            = fxi[k];
       globalforce [k + dimfxy]   = fxo[k];
       globalforce [k + 2*dimfxy] = fyi[k];
       globalforce [k + 3*dimfxy] = fyo[k];
     }
-    if (CPU_Rank < CPU_Number-1)
-      MPI_Send (&globalforce[0], 4*dimfxy, MPI_DOUBLE, CPU_Rank+1, 27, MPI_COMM_WORLD);
+    if ( CPU_Rank < CPU_Number-1 ) {
+      MPI_Send (&globalforce[0], 4*dimfxy, MPI_DOUBLE, CPU_Rank + 1, 27, MPI_COMM_WORLD);
+    }
   } else {
     for ( k = 0; k < dimfxy; k++ ) {
       localforce [k]            = fxi[k];
@@ -120,17 +128,19 @@ void ComputeForce (force, Rho, x, y, rsmoothing, mass, dimfxy)
     }
     MPI_Allreduce (localforce, globalforce, 4*dimfxy, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   }
-  if (FakeSequential)
-    MPI_Bcast (globalforce, 4*dimfxy, MPI_DOUBLE, CPU_Number-1, MPI_COMM_WORLD);
+  if ( FakeSequential ) {
+    MPI_Bcast (globalforce, 4*dimfxy, MPI_DOUBLE, CPU_Number - 1, MPI_COMM_WORLD);
+  }
   force->fx_inner    = globalforce[0];
-  force->fx_ex_inner = globalforce[dimfxy-1];
+  force->fx_ex_inner = globalforce[dimfxy - 1];
   force->fx_outer    = globalforce[dimfxy];
-  force->fx_ex_outer = globalforce[2*dimfxy-1];
+  force->fx_ex_outer = globalforce[2*dimfxy - 1];
   force->fy_inner    = globalforce[2*dimfxy];
-  force->fy_ex_inner = globalforce[3*dimfxy-1];
+  force->fy_ex_inner = globalforce[3*dimfxy - 1];
   force->fy_outer    = globalforce[3*dimfxy];
-  force->fy_ex_outer = globalforce[4*dimfxy-1];
+  force->fy_ex_outer = globalforce[4*dimfxy - 1];
   force->GlobalForce = globalforce;
+
   free (localforce);
   free (fxi);
   free (fxo);
@@ -142,10 +152,11 @@ real compute_smoothing (r)
      real r;
 {
   real smooth;
-  smooth = THICKNESSSMOOTHING * AspectRatio(r) * pow(r, 1.0+FLARINGINDEX);
+
+  smooth = THICKNESSSMOOTHING*AspectRatio(r)*pow(r, 1.0+FLARINGINDEX);
+
   return smooth;
 }
-
 
 void UpdateLog (fc, psys, Rho, Energy, outputnb, time, dimfxy)
      Force *fc;
@@ -161,6 +172,7 @@ void UpdateLog (fc, psys, Rho, Energy, outputnb, time, dimfxy)
   real *globalforce;
   FILE *out;
   char filename[MAX1D];
+
   nb = psys->nb;
   for (i = 0; i < nb; i++) {
     x = psys->x[i];
@@ -169,51 +181,52 @@ void UpdateLog (fc, psys, Rho, Energy, outputnb, time, dimfxy)
     vy = psys->vy[i];
     r = sqrt(x*x+y*y);
     m = psys->mass[i];
-    if (RocheSmoothing)
+    if ( RocheSmoothing ) {
       smoothing = r*pow(m/3.,1./3.)*ROCHESMOOTHING;
-    else
-      if (VarDiscHeight) {
+    } else {
+      if ( VarDiscHeight ) {
         smoothing = 0.0;
         smoothing = compute_varheight_smoothing(x,y);
         MPI_Allreduce(&smoothing, &tmp, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
         smoothing = tmp;
-      }
-      else
+      } else {
         smoothing = compute_smoothing(r);
+      }
+    }
     ComputeForce (fc, Rho, x, y, smoothing, m, dimfxy);
     globalforce = fc->GlobalForce;
-    if (CPU_Rank == CPU_Number-1) {
+    if ( CPU_Rank == CPU_Number-1 ) {
       sprintf (filename, "%stqwk%d.dat", OUTPUTDIR, i);
       out = fopen (filename, "a");
       if (out == NULL) {
-	fprintf (stderr, "Can't open %s\n", filename);
-	fprintf (stderr, "Aborted.\n");
+        fprintf (stderr, "Can't open %s\n", filename);
+        fprintf (stderr, "Aborted.\n");
       }
       fprintf (out, "%d\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\n", outputnb, \
-	       x*fc->fy_inner-y*fc->fx_inner,				\
-	       x*fc->fy_outer-y*fc->fx_outer,				\
-	       x*fc->fy_ex_inner-y*fc->fx_ex_inner,			\
-	       x*fc->fy_ex_outer-y*fc->fx_ex_outer,			\
-	       vx*fc->fx_inner+vy*fc->fy_inner,				\
-	       vx*fc->fx_outer+vy*fc->fy_outer,				\
-	       vx*fc->fx_ex_inner+vy*fc->fy_ex_inner,			\
-	       vx*fc->fx_ex_outer+vy*fc->fy_ex_outer, time);
+        x*fc->fy_inner-y*fc->fx_inner,				\
+        x*fc->fy_outer-y*fc->fx_outer,				\
+        x*fc->fy_ex_inner-y*fc->fx_ex_inner,			\
+        x*fc->fy_ex_outer-y*fc->fx_ex_outer,			\
+        vx*fc->fx_inner+vy*fc->fy_inner,				\
+        vx*fc->fx_outer+vy*fc->fy_outer,				\
+        vx*fc->fx_ex_inner+vy*fc->fy_ex_inner,			\
+        vx*fc->fx_ex_outer+vy*fc->fy_ex_outer, time);
       fclose (out);
       if ( SGZeroMode || !SelfGravity ) {
-	for ( k = 0; k < dimfxy; k++ ) {
-	  sprintf (filename, "%stqwk%d_%d.dat", OUTPUTDIR, i, k);
-	  out = fopen (filename, "a");
-	  if (out == NULL) {
-	    fprintf (stderr, "Can't open %s\n", filename);
-	    fprintf (stderr, "Aborted.\n");
-	  }
-	  fprintf (out, "%d\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\n", outputnb, \
-		   x*globalforce[2*dimfxy+k]-y*globalforce[k],		\
-		   x*globalforce[3*dimfxy+k]-y*globalforce[dimfxy+k],	\
-		   vx*globalforce[k]+vy*globalforce[2*dimfxy+k],	\
-		   vx*globalforce[dimfxy+k]+vy*globalforce[3*dimfxy+k], time);
-	  fclose (out);
-	}
+        for ( k = 0; k < dimfxy; k++ ) {
+          sprintf (filename, "%stqwk%d_%d.dat", OUTPUTDIR, i, k);
+          out = fopen (filename, "a");
+          if (out == NULL) {
+            fprintf (stderr, "Can't open %s\n", filename);
+            fprintf (stderr, "Aborted.\n");
+          }
+          fprintf (out, "%d\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\n", outputnb, \
+            x*globalforce[2*dimfxy+k]-y*globalforce[k],		\
+            x*globalforce[3*dimfxy+k]-y*globalforce[dimfxy+k],	\
+            vx*globalforce[k]+vy*globalforce[2*dimfxy+k],	\
+            vx*globalforce[dimfxy+k]+vy*globalforce[3*dimfxy+k], time);
+          fclose (out);
+        }
       }
     }
   }

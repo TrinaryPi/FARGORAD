@@ -46,6 +46,7 @@ boolean         OpacitySmoothing = NO;
 boolean         Write_OpticalDepths = NO;
 boolean         ExplicitRadTransport = NO;
 boolean         AnalyticCooling = NO;
+boolean         Constant_Opacity = NO;
 
 void var(name, ptr, type, necessary, deflt)
      char           *name;
@@ -54,9 +55,10 @@ void var(name, ptr, type, necessary, deflt)
      int             necessary;
      char           *deflt;
 {
-  real            valuer;
-  int             valuei;
-  float		  temp;
+  real valuer;
+  int valuei;
+  float temp;
+
   sscanf (deflt, "%f", &temp);
   valuer = (real) (temp);
   valuei = (int) valuer;
@@ -91,218 +93,211 @@ void ReadVariables(filename)
   
   InitVariables();
   input = fopen(filename, "r");
-  if (input == NULL) {
+  if ( input == NULL ) {
     mastererr ("Unable to read '%s'. Program stopped.\n",filename);
     prs_exit(1);
   }
   mastererr ("Reading parameters file '%s'.\n", filename);
-  while (fgets(s, 349, input) != NULL) {
+  while ( fgets(s, 349, input) != NULL ) {
     success = sscanf(s, "%s ", nm);
-    if ((nm[0] != '#') && (success == 1)) {  /* # begins a comment line */
+    if (( nm[0] != '#' ) && ( success == 1 )) {  /* # begins a comment line */
       s1 = s + strlen(nm);
       sscanf(s1 + strspn(s1, "\t :=>_"), "%f", &temp);
       sscanf(s1 + strspn(s1, "\t :=>_"), "%289s ", stringval);
       valuer = (real) temp;
       valuei = (int) temp;
       for (i = 0; i < strlen(nm); i++) {
-	nm[i] = (char) toupper(nm[i]);
+        nm[i] = (char) toupper(nm[i]);
       }
       found = NO;
       for (i = 0; i < VariableIndex; i++) {
-	if (strcmp(nm, VariableSet[i].name) == 0) {
-	  if (VariableSet[i].read == YES) {
-	    mastererr("Warning : %s defined more than once.\n", nm);
-	  }
-	  found = YES;
-	  VariableSet[i].read = YES;
-	  ptri = (int *) (VariableSet[i].variable);
-	  ptrr = (real *) (VariableSet[i].variable);
-	  if (VariableSet[i].type == INT) {
-	    *ptri = valuei;
-	  } else if (VariableSet[i].type == REAL) {
-	    *ptrr = valuer;
-	  } else if (VariableSet[i].type == STRING) {
-	    strcpy (VariableSet[i].variable, stringval);
-	  }
-	}
+        if ( strcmp(nm, VariableSet[i].name) == 0 ) {
+          if ( VariableSet[i].read == YES ) {
+            mastererr("Warning : %s defined more than once.\n", nm);
+          }
+          found = YES;
+          VariableSet[i].read = YES;
+          ptri = (int *) (VariableSet[i].variable);
+          ptrr = (real *) (VariableSet[i].variable);
+          if ( VariableSet[i].type == INT ) {
+            *ptri = valuei;
+          } else if ( VariableSet[i].type == REAL ) {
+            *ptrr = valuer;
+          } else if ( VariableSet[i].type == STRING ) {
+            strcpy (VariableSet[i].variable, stringval);
+          }
+        }
       }
-      if (found == NO) {
-	mastererr("Warning : variable %s defined but non-existent in code.\n", nm);
+      if ( found == NO ) {
+        mastererr("Warning : variable %s defined but non-existent in code.\n", nm);
       }
     }
   }
-  
   found = NO;
   for (i = 0; i < VariableIndex; i++) {
-    if ((VariableSet[i].read == NO) && (VariableSet[i].necessary == YES)) {
-      if (found == NO) {
-	mastererr("Fatal error : undefined mandatory variable(s):\n");
-	found = YES;
+    if (( VariableSet[i].read == NO ) && ( VariableSet[i].necessary == YES )) {
+      if ( found == NO ) {
+        mastererr("Fatal error : undefined mandatory variable(s):\n");
+        found = YES;
       }
       mastererr("%s\n", VariableSet[i].name);
     }
-    if (found == YES)
+    if (found == YES) {
       prs_exit(1);
-    
+    }
   }
   found = NO;
   for (i = 0; i < VariableIndex; i++) {
-    if (VariableSet[i].read == NO) {
-      if (found == NO) {
-	mastererr("Secondary variables omitted :\n");
-	found = YES;
+    if ( VariableSet[i].read == NO ) {
+      if ( found == NO ) {
+        mastererr("Secondary variables omitted :\n");
+        found = YES;
       }
-      if ((type = VariableSet[i].type) == REAL)
-	mastererr("%s ;\t Default Value : %.5g\n", VariableSet[i].name, *((real *) VariableSet[i].variable));
-      if (type == INT)
-	mastererr("%s ;\t Default Value : %d\n", VariableSet[i].name, *((int *) VariableSet[i].variable));
-      if (type == STRING)
-	mastererr("%s ;\t Default Value : %s\n", VariableSet[i].name, VariableSet[i].variable);
+      if ( (type = VariableSet[i].type) == REAL ) {
+        mastererr("%s ;\t Default Value : %.5g\n", VariableSet[i].name, *((real *) VariableSet[i].variable));
+      }
+      if ( type == INT ) {
+        mastererr("%s ;\t Default Value : %d\n", VariableSet[i].name, *((int *) VariableSet[i].variable));
+      }
+      if ( type == STRING ) {
+        mastererr("%s ;\t Default Value : %s\n", VariableSet[i].name, VariableSet[i].variable);
+      }
     }
   }
-  if ((*ADVLABEL == 'y') || (*ADVLABEL == 'Y')) AdvecteLabel = YES;
-  if ((*OUTERSOURCEMASS == 'y') || (*OUTERSOURCEMASS == 'Y')) OuterSourceMass = YES;
-  if ((*TRANSPORT == 's') || (*TRANSPORT == 'S')) FastTransport = NO;
 
-  if ((*OPENINNERBOUNDARY == 'O') || (*OPENINNERBOUNDARY == 'o')) OpenInner = YES;
-  if ((*OPENINNERBOUNDARY == 'C') || (*OPENINNERBOUNDARY == 'c')) ClosedInner = YES;
-  if ((*OPENINNERBOUNDARY == 'N') || (*OPENINNERBOUNDARY == 'n')) NonReflecting = YES;
-  if ((*OPENINNERBOUNDARY == 'E') || (*OPENINNERBOUNDARY == 'e')) EvanescentInner = YES;
-  if ((*OPENINNERBOUNDARY == 'V') || (*OPENINNERBOUNDARY == 'v')) ViscousInner = YES;
-
-  if ((*OPENOUTERBOUNDARY == 'O') || (*OPENOUTERBOUNDARY == 'o')) OpenOuter = YES;
-  if ((*OPENOUTERBOUNDARY == 'W') || (*OPENOUTERBOUNDARY == 'w')) EvanescentOuter = YES;
-  if ((EvanescentInner == YES) && (EvanescentOuter == YES)) {
+  /* Inner and Outer Hydro Boundary Conditions */
+  if (( *OPENINNERBOUNDARY == 'O' ) || ( *OPENINNERBOUNDARY == 'o' )) {
+    OpenInner = YES;
+  }
+  if (( *OPENINNERBOUNDARY == 'C' ) || ( *OPENINNERBOUNDARY == 'c' )) {
+    ClosedInner = YES;
+  }
+  if (( *OPENINNERBOUNDARY == 'N' ) || ( *OPENINNERBOUNDARY == 'n' )) {
+    NonReflecting = YES;
+  }
+  if (( *OPENINNERBOUNDARY == 'E' ) || ( *OPENINNERBOUNDARY == 'e' )) {
+    EvanescentInner = YES;
+  }
+  if (( *OPENINNERBOUNDARY == 'V' ) || ( *OPENINNERBOUNDARY == 'v' )) {
+    ViscousInner = YES;
+  }
+  if (( *OPENOUTERBOUNDARY == 'O' ) || ( *OPENOUTERBOUNDARY == 'o' )) {
+    OpenOuter = YES;
+  }
+  if (( *OPENOUTERBOUNDARY == 'W' ) || ( *OPENOUTERBOUNDARY == 'w' )) {
+    EvanescentOuter = YES;
+  }
+  if (( EvanescentInner ) && (EvanescentOuter )) {
     Evanescent = YES;
     EvanescentInner = NO;
     EvanescentOuter = NO;
   }
-  
-  if ((*NONKEPBOUNDARIES == 'Y') || (*NONKEPBOUNDARIES == 'y')) NonKepBoundaries = YES;
-  if ((*GRIDSPACING == 'L') || (*GRIDSPACING == 'l')) LogGrid = YES;
-  if ((*DISK == 'N') || (*DISK == 'n')) IsDisk = NO;
-  if ((*HYDRO == 'N') || (*HYDRO == 'n')) HydroOn = NO;
-  if ((*LIVEBODIES == 'N') || (*LIVEBODIES == 'n')) LiveBodies = NO;
-  if ((*RADIATIVEONLY == 'Y') || (*RADIATIVEONLY == 'y')) RadiativeOnly = YES;
-  if ((*NOCFL == 'Y') || (*NOCFL == 'y')) NoCFL = YES;
-  if ((*FRAME == 'C') || (*FRAME == 'c')) Corotating = YES;
-  if ((*FRAME == 'G') || (*FRAME == 'g')) {
+  if (( *NONKEPBOUNDARIES == 'Y' ) || ( *NONKEPBOUNDARIES == 'y' )) {
+    NonKepBoundaries = YES;
+  }
+  if (( *OUTERSOURCEMASS == 'y' ) || ( *OUTERSOURCEMASS == 'Y' )) {
+    OuterSourceMass = YES;
+  }
+
+  /* Hydro Numerical Method Parameters */
+  if (( *DISK == 'N' ) || ( *DISK == 'n' )) {
+    IsDisk = NO;
+  }
+  if (( *HYDRO == 'N' ) || ( *HYDRO == 'n' )) {
+    HydroOn = NO;
+  }
+  if (( *LIVEBODIES == 'N' ) || ( *LIVEBODIES == 'n' )) {
+    LiveBodies = NO;
+  }
+  if (( *FRAME == 'C' ) || ( *FRAME == 'c' )) {
+    Corotating = YES;
+  }
+  if (( *FRAME == 'G' ) || ( *FRAME == 'g' )) {
     Corotating = YES;
     GuidingCenter = YES;
   }
-  if ((*SIGMATAPER == 'Y') || (*SIGMATAPER == 'y')) Sigma_Taper = YES;
-  if ((*SIGMACAVITY == 'Y') || (*SIGMACAVITY == 'y')) Sigma_Cavity = YES;
-  if ((*WRITEVELOCITY == 'N') || (*WRITEVELOCITY == 'n')) Write_Velocity = NO;
-  if ((*WRITEDENSITY == 'N') || (*WRITEDENSITY == 'n')) Write_Density = NO;
-  if ((*WRITEENERGY == 'Y') || (*WRITEENERGY == 'y')) Write_Energy = YES;
-  if ((*WRITETEMPERATURE == 'Y') || (*WRITETEMPERATURE == 'y')) Write_Temperature = YES;
-  if ((*WRITEDIVV == 'Y') || (*WRITEDIVV == 'y')) Write_DivV = YES;
-  if ((*WRITEQPLUS == 'Y') || (*WRITEQPLUS == 'y')) Write_Qplus = YES;
-  if ((*WRITEECCENTRICITY == 'Y') || (*WRITEECCENTRICITY == 'y')) Write_Eccentricity = YES;
-  if ((*WRITEPERICENTRE == 'Y') || (*WRITEPERICENTRE == 'y')) Write_Pericentre = YES;
-  if ((*INDIRECTTERM == 'N') || (*INDIRECTTERM == 'n')) Indirect_Term = NO;
-  if ((*CONFIGMP == 'Y') || (*CONFIGMP == 'y')) ConfigMp = YES;
-  if ((*CONFIGPOS == 'Y') || (*CONFIGPOS == 'y')) ConfigPos = YES;
-  if ((*SELFGRAVITY == 'Y') || (*SELFGRAVITY == 'y')) SelfGravity = YES;
-  if ((*SELFGRAVITY == 'Z') || (*SELFGRAVITY == 'z')) {
-    SelfGravity = YES;
-    SGZeroMode = YES;
+  if (( *NOCFL == 'Y' ) || ( *NOCFL == 'y' )) {
+    NoCFL = YES;
   }
-  if ((*ZMPLUS == 'Y') || (*ZMPLUS == 'y')) ZMPlus = YES;
-  if ( (ZMPlus) && (!SGZeroMode) ) {
-    masterprint ("This is not very meaningfull to involve the anisotropic pressure model (ZMPlus=Yes) without taking into account the axisymmetric component of the disk self-gravity. I decided to put ZMPlus = No. Please check again!");
-    ZMPlus = NO;
+  if (( *INDIRECTTERM == 'N' ) || ( *INDIRECTTERM == 'n' )) {
+    Indirect_Term = NO;
+  }
+  if (( *CONFIGMP == 'Y' ) || ( *CONFIGMP == 'y' )) {
+    ConfigMp = YES;
+  }
+  if (( *CONFIGPOS == 'Y' ) || ( *CONFIGPOS == 'y' )) {
+    ConfigPos = YES;
+  }
+  if (( *EXCLUDEHILL == 'Y' ) || ( *EXCLUDEHILL == 'y' )) {
+    ExcludeHill = YES;
+  }
+  if (( *CICPLANET == 'Y' ) || ( *CICPLANET == 'y' )) {
+    CICPlanet = YES;
+  }
+  if (( *FORCEDCIRCULAR == 'Y' ) || ( *FORCEDCIRCULAR == 'y' )) {
+    ForcedCircular = YES;
+  }
+  if (( ALPHAVISCOSITY != 0.0 ) && ( VISCOSITY != 0.0 )) {
+    mastererr ("You cannot use at the same time\n");
+    mastererr ("VISCOSITY and ALPHAVISCOSITY.\n");
+    mastererr ("Edit the parameter file so as to remove\n");
+    mastererr ("one of these variables and run again.\n");
+    prs_exit (1);
+  }
+  if ( ALPHAVISCOSITY != 0.0 ) {
+    ViscosityAlpha = YES;
+    masterprint ("Viscosity is of alpha type\n");
+  }
+  if (( *STELLARSMOOTHING == 'N' ) || ( *STELLARSMOOTHING == 'n' )) {
+    StellarSmoothing = NO;
+  }
+  if (( THICKNESSSMOOTHING != 0.0 ) && ( ROCHESMOOTHING != 0.0 )) {
+    mastererr ("You cannot use at the same time\n");
+    mastererr ("`ThicknessSmoothing' and `RocheSmoothing'.\n");
+    mastererr ("Edit the parameter file so as to remove\n");
+    mastererr ("one of these variables and run again.\n");
+    prs_exit (1);
+  }
+  if (( THICKNESSSMOOTHING <= 0.0 ) && ( ROCHESMOOTHING <= 0.0 )) {
+    mastererr ("A non-vanishing potential smoothing length is required.\n");
+    mastererr ("Please use either of the following variables:\n");
+    mastererr ("`ThicknessSmoothing' *or* `RocheSmoothing'.\n");
+    mastererr ("before launching the run again.\n");
+    prs_exit (1);
+  }
+  if ( ROCHESMOOTHING != 0.0 ) {
+    RocheSmoothing = YES;
+    masterprint ("Planet potential smoothing scales with their Hill sphere.\n");
+  }
+  if ((( ROCHESMOOTHING != 0.0 ) || ( THICKNESSSMOOTHING != 0.0 )) && ( StellarSmoothing == NO )) {
+    masterprint("The option has been chosen to treat the stellar potential as non-point source. \n");
+    masterprint("Thickness smoothing or Roche smoothing will not be used. \n");
+    masterprint("Please check if this is what you require. \n");
+  }
+  if (( *DISCMASSTAPER == 'Y' ) || ( *DISCMASSTAPER == 'y')) {
+    DiscMassTaper = YES;
+  }
+  if ((( DMTTAU != 0.0 ) || ( DMTOUTPUTSTART != 0.0 )) && ( DiscMassTaper == NO )) {
+    masterprint("DiscMassTaper = NO, so DMTTSTART and/or DMTTAU do not need a non-zero value. \n");
+    masterprint("Please check the input parameter file to see if this is the set-up you want");
   }
 
-   if ((*OPACITYTABLE == 'B') || (*OPACITYTABLE == 'b')) {
-    BellLin1994_Opacity = YES;
-  }
-
-  if ((*OPACITYTABLE == 'L') || (*OPACITYTABLE == 'l')) {
-    LinPap1985_Opacity = YES;
-  }
-
-  if ((*OPACITYTABLE == 'P') || (*OPACITYTABLE == 'p')) {
-    PowerLaw_Opacity = YES;
-  }
-
-  if ((*OPACITYSMOOTHING == 'Y') || (*OPACITYSMOOTHING == 'y')) {
-    OpacitySmoothing = YES;
-  }
-  
-  if ((*ADIABATIC == 'Y') || (*ADIABATIC == 'y')) {
+  /* Equation of State Parameters */
+  if (( *ADIABATIC == 'Y' ) || ( *ADIABATIC == 'y' )) {
     Adiabatic = YES;
     Write_Temperature = YES;
   }
-  if ( (Adiabatic) && (ADIABATICINDEX == 1) ) {
+  if (( Adiabatic ) && ( ADIABATICINDEX == 1 )) {
     masterprint ("You cannot have Adiabatic = YES and AdiabatcIndex = 1. I decided to put Adiabatic = No, to simulate a locally isothermal equation of state. Please check that it is what you really wanted to do!\n");
     Adiabatic = NO;
   }
-
-  if ((*COOLING == 'Y') || (*COOLING == 'y')) {
+  if (( *COOLING == 'Y' ) || ( *COOLING == 'y' )) {
     Cooling = YES;
   }
-  
-  if ((*CUSTOMCOOLING == 'Y') || (*CUSTOMCOOLING == 'y')) {
+  if (( *CUSTOMCOOLING == 'Y' ) || ( *CUSTOMCOOLING == 'y' )) {
     Cooling = YES;
     CustomCooling = YES;
   }
-
-  if ((*RADCOOLING == 'Y') || (*RADCOOLING == 'y')) {
-    RadCooling = YES;
-  }
-
-  if ((*ANALYTICCOOLING == 'Y') || (*ANALYTICCOOLING == 'y')) {
-    AnalyticCooling = YES;
-  }
-
-  if ((RadCooling == YES) && ((Cooling == YES) || (CustomCooling == YES))) {
-    masterprint("There are too many types/sources of cooling present. I am turning radiative cooling off. Please recheck input parameter files! \n");
-    RadCooling = NO;
-  }
-
-  if ((*IRRADIATION == 'Y') || (*IRRADIATION == 'y')) {
-    Irradiation = YES;
-  }
-
-  if ((*RADTRANSPORT == 'Y') || (*RADTRANSPORT == 'y')) {
-    RadTransport = YES;
-  }
-  if ((*RADTRANSPORT == 'E') || (*RADTRANSPORT == 'e')) {
-    RadTransport = YES;
-    ExplicitRadTransport = YES;
-  } 
-
-  if ((*INNERTEMPBC == 'C') || (*INNERTEMPBC == 'c')) InnerBCCons = YES;
-  if ((*INNERTEMPBC == 'G') || (*INNERTEMPBC == 'g')) InnerBCGrad = YES;
-  if ((*INNERTEMPBC == 'E') || (*INNERTEMPBC == 'e')) InnerBCExtrap = YES;
-
-  if ((*OUTERTEMPBC == 'C') || (*OUTERTEMPBC == 'c')) OuterBCCons = YES;
-  if ((*OUTERTEMPBC == 'G') || (*OUTERTEMPBC == 'g')) OuterBCGrad = YES;
-  if ((*OUTERTEMPBC == 'E') || (*OUTERTEMPBC == 'e')) OuterBCExtrap = YES;
-
-  if ((RadTransport == YES) && ((InnerBCCons == NO) && (InnerBCGrad == NO) && (InnerBCExtrap == NO))) {
-    masterprint("You have not set any value for a boundary condition at the inner disc edge\n");
-    masterprint("I will continue, but check this is what you want\n");
-  }
-  if ((RadTransport == YES) && ((OuterBCCons == NO) && (OuterBCGrad == NO) && (OuterBCExtrap == NO))) {
-    masterprint("You have not set any value for a boundary condition at the outer disc edge\n");
-    masterprint("I will continue, but check this is what you want\n");
-  }
-  if ((*OPTIMALOMEGA == 'Y') || (*OPTIMALOMEGA == 'y'))
-    OptimalOmega = YES;
-  if ((*OPTIMALOMEGA == 'C') || (*OPTIMALOMEGA == 'c'))
-    ChebyshevOmega = YES;
-  if ((*NORMRESIDUAL == 'M') || (*NORMRESIDUAL == 'm'))
-    Residual_Max = YES;
-  if ((*NORMRELATIVE == 'M') || (*NORMRELATIVE == 'm'))
-    Relative_Max = YES;
-  if ((*NORMRESIDUAL == 'D') || (*NORMRESIDUAL == 'd'))
-    Residual_Diff = YES;
-  if ((*NORMRELATIVE == 'D') || (*NORMRELATIVE == 'd'))
-    Relative_Diff = YES;
-  if ((Residual_Max == NO) && (Residual_Diff == NO) && (Relative_Max == NO) && (Relative_Diff == NO))
-    Relative_Diff = YES;
   if ((*REVERSETEMPERATUREINIT == 'Y') || (*REVERSETEMPERATUREINIT == 'y')) {
     TempInit = YES;
     if (Adiabatic == YES) {
@@ -311,57 +306,161 @@ void ReadVariables(filename)
     }
   }
 
-  if ((*RAYTRACINGHEATING == 'I') || (*RAYTRACINGHEATING == 'i')) {
+  /* Self-Gravity Module Parameters */
+  if (( *SELFGRAVITY == 'Y' ) || ( *SELFGRAVITY == 'y' )) {
+    SelfGravity = YES;
+  }
+  if (( *SELFGRAVITY == 'Z' ) || ( *SELFGRAVITY == 'z' )) {
+    SelfGravity = YES;
+    SGZeroMode = YES;
+  }
+  if (( *ZMPLUS == 'Y' ) || ( *ZMPLUS == 'y' )) ZMPlus = YES;
+  if (( ZMPlus ) && ( !SGZeroMode )) {
+    masterprint ("This is not very meaningfull to involve the anisotropic pressure model (ZMPlus=Yes) without taking into account the axisymmetric component of the disk self-gravity. I decided to put ZMPlus = No. Please check again!");
+    ZMPlus = NO;
+  }
+
+  /* Disk Grid/Set-up Parameters */
+  if (( *GRIDSPACING == 'L' ) || ( *GRIDSPACING == 'l' )) {
+    LogGrid = YES;
+  }
+  if (( *SIGMATAPER == 'Y' ) || ( *SIGMATAPER == 'y' )) {
+    Sigma_Taper = YES;
+  }
+  if (( *SIGMACAVITY == 'Y' ) || ( *SIGMACAVITY == 'y' )) {
+    Sigma_Cavity = YES;
+  }
+
+  /* General Radiation Module Parameters */
+  if (( *RADIATIVEONLY == 'Y' ) || ( *RADIATIVEONLY == 'y' )) {
+    RadiativeOnly = YES;
+  }
+  if (( *RADCOOLING == 'Y' ) || ( *RADCOOLING == 'y' )) {
+    RadCooling = YES;
+  }
+  if (( RadCooling ) && (( Cooling ) || ( CustomCooling ))) {
+    masterprint("There are too many types/sources of cooling present. I am turning radiative cooling off. Please recheck input parameter files! \n");
+    RadCooling = NO;
+  }
+  if (( *ANALYTICCOOLING == 'Y' ) || ( *ANALYTICCOOLING == 'y' )) {
+    AnalyticCooling = YES;
+  }
+  if (( *IRRADIATION == 'Y' ) || ( *IRRADIATION == 'y' )) {
+    Irradiation = YES;
+  }
+  if (( *RAYTRACINGHEATING == 'I' ) || ( *RAYTRACINGHEATING == 'i' )) {
     ImplicitRayTracingHeating = YES;
     RayTracingHeating = YES;
   }
-
-  if ((*RAYTRACINGHEATING == 'E') || (*RAYTRACINGHEATING == 'e')) {
+  if (( *RAYTRACINGHEATING == 'E' ) || ( *RAYTRACINGHEATING == 'e' )) {
     ExplicitRayTracingHeating = YES;
     RayTracingHeating = YES;
   }
+  if (( *EMPTYCAVITY == 'N' ) || ( *EMPTYCAVITY == 'N' )) {
+    EmptyCavity = NO;
+  }
+  
+  /* Opacity Parameters */
+  if (( *OPACITYTABLE == 'B' ) || ( *OPACITYTABLE == 'b' )) {
+    BellLin1994_Opacity = YES;
+  }
+  if (( *OPACITYTABLE == 'L' ) || ( *OPACITYTABLE == 'l' )) {
+    LinPap1985_Opacity = YES;
+  }
+  if (( *OPACITYTABLE == 'P' ) || ( *OPACITYTABLE == 'p' )) {
+    PowerLaw_Opacity = YES;
+  }
+  if (( *OPACITYTABLE == 'C' ) || ( *OPACITYTABLE == 'c' )) {
+    Constant_Opacity = YES;
+  }
+  if (( *OPACITYSMOOTHING == 'Y' ) || ( *OPACITYSMOOTHING == 'y' )) {
+    OpacitySmoothing = YES;
+  }
+  if (( *BITSCHSKAPPA == 'Y' ) || ( *BITSCHSKAPPA == 'y' )) {
+    BitschSKappa = YES;
+  }
+  if (( *HUBENYSKAPPA == 'Y' ) || ( *HUBENYSKAPPA == 'y' )) {
+    HubenySKappa = YES;
+  }
+  
 
-  if ((RadTransport == YES) && (((*IMPLICITRAD == 'Y') || (*IMPLICITRAD == 'Y')))) {
+  /* Radiative Diffusion (FLD/SOR) Set-up */
+  if (( *RADTRANSPORT == 'Y' ) || ( *RADTRANSPORT == 'y' )) {
+    RadTransport = YES;
+  }
+  if (( *RADTRANSPORT == 'E' ) || ( *RADTRANSPORT == 'e' )) {
+    RadTransport = YES;
+    ExplicitRadTransport = YES;
+  } 
+  if (( *INNERTEMPBC == 'C' ) || ( *INNERTEMPBC == 'c' )) {
+    InnerBCCons = YES;
+  }
+  if (( *INNERTEMPBC == 'G' ) || ( *INNERTEMPBC == 'g' )) {
+    InnerBCGrad = YES;
+  }
+  if (( *INNERTEMPBC == 'E' ) || ( *INNERTEMPBC == 'e' )) {
+    InnerBCExtrap = YES;
+  }
+  if (( *OUTERTEMPBC == 'C' ) || ( *OUTERTEMPBC == 'c' )) {
+    OuterBCCons = YES;
+  }
+  if (( *OUTERTEMPBC == 'G' ) || ( *OUTERTEMPBC == 'g' )) {
+    OuterBCGrad = YES;
+  }
+  if (( *OUTERTEMPBC == 'E' ) || ( *OUTERTEMPBC == 'e' )) {
+    OuterBCExtrap = YES;
+  }
+  if (( RadTransport ) && (( InnerBCCons == NO ) && ( InnerBCGrad == NO ) && ( InnerBCExtrap == NO ))) {
+    masterprint("You have not set any value for a boundary condition at the inner disc edge\n");
+    masterprint("I will continue, but check this is what you want\n");
+  }
+  if (( RadTransport ) && (( OuterBCCons == NO ) && ( OuterBCGrad == NO ) && ( OuterBCExtrap == NO ))) {
+    masterprint("You have not set any value for a boundary condition at the outer disc edge\n");
+    masterprint("I will continue, but check this is what you want\n");
+  }
+  if (( *OPTIMALOMEGA == 'Y' ) || ( *OPTIMALOMEGA == 'y' )) {
+    OptimalOmega = YES;
+  }
+  if (( *OPTIMALOMEGA == 'C' ) || ( *OPTIMALOMEGA == 'c' )) {
+    ChebyshevOmega = YES;
+  }
+  if (( *NORMRESIDUAL == 'M' ) || ( *NORMRESIDUAL == 'm' )) {
+    Residual_Max = YES;
+  }
+  if (( *NORMRELATIVE == 'M' ) || ( *NORMRELATIVE == 'm' )) {
+    Relative_Max = YES;
+  }
+  if (( *NORMRESIDUAL == 'D' ) || ( *NORMRESIDUAL == 'd' )) {
+    Residual_Diff = YES;
+  }
+  if (( *NORMRELATIVE == 'D' ) || ( *NORMRELATIVE == 'd' )) {
+    Relative_Diff = YES;
+  }
+  if (( Residual_Max == NO ) && ( Residual_Diff == NO ) && ( Relative_Max == NO ) && ( Relative_Diff == NO )) {
+    Relative_Diff = YES;
+  }
+  if (( RadTransport ) && ((( *IMPLICITRAD == 'Y' ) || ( *IMPLICITRAD == 'Y' )))) {
     ImplicitRadiative = YES;
-    if (ExplicitRayTracingHeating == YES) {
+    if ( ExplicitRayTracingHeating ) {
       ExplicitRayTracingHeating = NO;
       ImplicitRayTracingHeating = YES;
     }
   }
-
-  if ( ExplicitRadTransport == YES ) {
-    if ( ImplicitRadiative == YES ) {
+  if ( ExplicitRadTransport ) {
+    if ( ImplicitRadiative ) {
       ImplicitRadiative = NO;
     }
-    if ( ImplicitRayTracingHeating == YES ) {
+    if ( ImplicitRayTracingHeating ) {
       ImplicitRayTracingHeating = NO;
       ExplicitRayTracingHeating = YES;
     }
   }
-
-  if (((RadCooling == YES) || (RadTransport == YES) || (Irradiation == YES) || (RayTracingHeating == YES))) {
+  if ((( RadCooling ) || ( RadTransport ) || ( Irradiation ) || ( RayTracingHeating ))) {
     VarDiscHeight = YES;
   }
 
-  // new - Constant factor between Rosseland opacity and visible opacity (i.e. Bitsch2014 etc) (6/01/2017)
-  if ((*BITSCHSKAPPA == 'Y') || (*BITSCHSKAPPA == 'y')) {
-    BitschSKappa = YES;
-  }
-
-  if ((*HUBENYSKAPPA == 'Y') || (*HUBENYSKAPPA == 'y')) {
-    HubenySKappa = YES;
-  }
-
-  if ((*EMPTYCAVITY == 'N') || (*EMPTYCAVITY == 'N')) {
-    EmptyCavity = NO;
-  }
-
-  // if ((HydroOn == NO) && ((RadCooling) || (Irradiation) || (RadTransport) || (RayTracingHeating))){
-  //   RadiativeOnly = YES;
-  //   masterprint("Hydrodynamics are turned off, but I have detected Radiative heating/cooling/transport effects, so I am turning RadiationOnly switch on.\n");
-  // }
-
-  if ((Adiabatic == NO) && ((RadCooling == YES) || (RadTransport == YES) || (Irradiation == YES) || (RayTracingHeating == YES))) {
+  /* Consistency Checks and Debugging */
+  if (( Adiabatic == NO ) && (( RadCooling ) || ( RadTransport ) || ( Irradiation ) || ( RayTracingHeating ))) {
     masterprint("Radiative cooling, transport, ray-trace heating or irradiation make no sense with an isothermal EoS. Please recheck input parameter files! \n");
     RadCooling = NO;
     RadTransport = NO;
@@ -369,77 +468,74 @@ void ReadVariables(filename)
     RayTracingHeating = NO;
     VarDiscHeight = NO;
   }
-
-  if ((debug == YES) && ((RadCooling == YES) || (RadTransport == YES) || (Irradiation == YES) || (RayTracingHeating == YES))) {
+  if (( debug ) && (( RadCooling ) || ( RadTransport ) || ( Irradiation ) || ( RayTracingHeating ))) {
   	RadiationDebug = YES;
   }
 
-  if ((VarDiscHeight == YES) && ((*WRITEDISCHEIGHT == 'Y') || (*WRITEDISCHEIGHT == 'y'))) Write_DiscHeight = YES;
-  if (((*WRITEQMINUS == 'Y') || (*WRITEQMINUS == 'y')) && ( RadCooling == YES)) Write_Qminus = YES;
-  if (((*WRITEQIRR == 'Y') || (*WRITEQIRR == 'y')) && ( Irradiation == YES )) Write_Qirr = YES;
-  if (((*WRITERTQIRR == 'Y') || (*WRITERTQIRR == 'y')) && ( RayTracingHeating == YES )) Write_QirrRT = YES;
-  if ((*WRITEKAPPA == 'Y') || (*WRITEKAPPA == 'y')) Write_Kappa = YES;
-  if (((*WRITECOEFFS == 'Y') || (*WRITECOEFFS == 'y')) && ( RadTransport == YES )) Write_Coeffs = YES;
-  if (((*WRITERESIDUAL == 'Y') || (*WRITERESIDUAL == 'y')) && ( RadTransport == YES)) Write_Residual = YES;
-  if (((*WRITERFLD == 'Y') || (*WRITERFLD == 'y')) && ( RadTransport == YES)) Write_Rfld = YES;
-  if ((*WRITETAUS == 'Y') || (*WRITETAUS == 'y')) Write_Taus = YES;
-  if (((*WRITEOPTICALDEPTHS == 'Y') || (*WRITEOPTICALDEPTHS == 'y')) && (( Irradiation == YES ) || ( RadCooling == YES))) Write_OpticalDepths = YES;
-
-  if ((*WRITEENERGY == 'N') || (*WRITEENERGY == 'n')) Write_Energy = NO;
-  if ((*EXCLUDEHILL == 'Y') || (*EXCLUDEHILL == 'y')) ExcludeHill = YES;
-  if ((*CICPLANET == 'Y') || (*CICPLANET == 'y')) CICPlanet = YES;
-  if ((*FORCEDCIRCULAR == 'Y') || (*FORCEDCIRCULAR == 'y')) ForcedCircular = YES;
-  if ((ALPHAVISCOSITY != 0.0) && (VISCOSITY != 0.0)) {
-    mastererr ("You cannot use at the same time\n");
-    mastererr ("VISCOSITY and ALPHAVISCOSITY.\n");
-    mastererr ("Edit the parameter file so as to remove\n");
-    mastererr ("one of these variables and run again.\n");
-    prs_exit (1);
+  /* Output Parameters */
+  if (( *WRITEVELOCITY == 'N' ) || ( *WRITEVELOCITY == 'n' )) {
+    Write_Velocity = NO;
   }
-  if (ALPHAVISCOSITY != 0.0) {
-    ViscosityAlpha = YES;
-    masterprint ("Viscosity is of alpha type\n");
+  if (( *WRITEDENSITY == 'N' ) || ( *WRITEDENSITY == 'n' )) {
+    Write_Density = NO;
   }
-
-  if ((*STELLARSMOOTHING == 'N') || (*STELLARSMOOTHING == 'n')) {
-    StellarSmoothing = NO;
+  if (( *WRITEENERGY == 'Y' ) || ( *WRITEENERGY == 'y' )) {
+    Write_Energy = YES;
   }
-  if ((THICKNESSSMOOTHING != 0.0) && (ROCHESMOOTHING != 0.0)) {
-    mastererr ("You cannot use at the same time\n");
-    mastererr ("`ThicknessSmoothing' and `RocheSmoothing'.\n");
-    mastererr ("Edit the parameter file so as to remove\n");
-    mastererr ("one of these variables and run again.\n");
-    prs_exit (1);
+  if (( *WRITETEMPERATURE == 'Y' ) || ( *WRITETEMPERATURE == 'y' )) {
+    Write_Temperature = YES;
   }
-  if ((THICKNESSSMOOTHING <= 0.0) && (ROCHESMOOTHING <= 0.0)) {
-    mastererr ("A non-vanishing potential smoothing length is required.\n");
-    mastererr ("Please use either of the following variables:\n");
-    mastererr ("`ThicknessSmoothing' *or* `RocheSmoothing'.\n");
-    mastererr ("before launching the run again.\n");
-    prs_exit (1);
+  if (( *WRITEDIVV == 'Y' ) || ( *WRITEDIVV == 'y' )) {
+    Write_DivV = YES;
   }
-  if (ROCHESMOOTHING != 0.0) {
-    RocheSmoothing = YES;
-    masterprint ("Planet potential smoothing scales with their Hill sphere.\n");
+  if (( *WRITEQPLUS == 'Y' ) || ( *WRITEQPLUS == 'y' )) {
+    Write_Qplus = YES;
   }
-  if (((ROCHESMOOTHING != 0.0) || (THICKNESSSMOOTHING != 0.0)) && (StellarSmoothing == NO)) {
-    masterprint("The option has been chosen to treat the stellar potential as non-point source. \n");
-    masterprint("Thickness smoothing or Roche smoothing will not be used. \n");
-    masterprint("Please check if this is what you require. \n");
-
+  if (( *WRITEECCENTRICITY == 'Y' ) || ( *WRITEECCENTRICITY == 'y' )) {
+    Write_Eccentricity = YES;
   }
-
-  if (OverridesOutputdir == YES) {
+  if (( *WRITEPERICENTRE == 'Y' ) || ( *WRITEPERICENTRE == 'y' )) {
+    Write_Pericentre = YES;
+  }
+  if (( VarDiscHeight ) && (( *WRITEDISCHEIGHT == 'Y' ) || ( *WRITEDISCHEIGHT == 'y' ))) {
+    Write_DiscHeight = YES;
+  }
+  if ((( *WRITEQMINUS == 'Y' ) || ( *WRITEQMINUS == 'y' )) && ( RadCooling )) {
+    Write_Qminus = YES;
+  }
+  if ((( *WRITEQIRR == 'Y' ) || ( *WRITEQIRR == 'y' )) && ( Irradiation )) {
+    Write_Qirr = YES;
+  }
+  if ((( *WRITERTQIRR == 'Y' ) || ( *WRITERTQIRR == 'y' )) && ( RayTracingHeating )) {
+    Write_QirrRT = YES;
+  }
+  if (( *WRITEKAPPA == 'Y' ) || ( *WRITEKAPPA == 'y' )) {
+    Write_Kappa = YES;
+  }
+  if ((( *WRITECOEFFS == 'Y' ) || ( *WRITECOEFFS == 'y' )) && ( RadTransport )) {
+    Write_Coeffs = YES;
+  }
+  if ((( *WRITERESIDUAL == 'Y' ) || ( *WRITERESIDUAL == 'y' )) && ( RadTransport )) {
+    Write_Residual = YES;
+  }
+  if ((( *WRITERFLD == 'Y' ) || ( *WRITERFLD == 'y' )) && ( RadTransport )) {
+    Write_Rfld = YES;
+  }
+  if (( *WRITETAUS == 'Y' ) || ( *WRITETAUS == 'y' )) {
+    Write_Taus = YES;
+  }
+  if ((( *WRITEOPTICALDEPTHS == 'Y' ) || ( *WRITEOPTICALDEPTHS == 'y' )) && (( Irradiation ) || ( RadCooling ))) {
+    Write_OpticalDepths = YES;
+  }
+  if (( *WRITEENERGY == 'N' ) || ( *WRITEENERGY == 'n' )) {
+    Write_Energy = NO;
+  }
+  if ( OverridesOutputdir ) {
     sprintf (OUTPUTDIR, "%s", NewOutputdir);
   }
   /* Add a trailing slash to OUTPUTDIR if needed */
-  if (*(OUTPUTDIR+strlen(OUTPUTDIR)-1) != '/')
+  if ( *(OUTPUTDIR+strlen(OUTPUTDIR)-1) != '/' ) {
     strcat (OUTPUTDIR, "/");
-
-  if ((*DISCMASSTAPER == 'Y') || (*DISCMASSTAPER == 'y')) DiscMassTaper = YES;
-  if (((DMTTAU != 0.0) || (DMTOUTPUTSTART != 0.0)) && (DiscMassTaper == NO)){
-    masterprint("DiscMassTaper = NO, so DMTTSTART and/or DMTTAU do not need a non-zero value. \n");
-    masterprint("Please check the input parameter file to see if this is the set-up you want");
   }
 }
 
@@ -481,7 +577,8 @@ real TellNbOutputs (time)
   return (time/DT/NINTERM);
 }
 
-void TellEverything () {
+void TellEverything ()
+{
   real temp, nbfileoutput;
   if (!CPU_Master) return;
   printf ("\nDisc properties:\n");
@@ -524,17 +621,21 @@ void TellEverything () {
   printf ("gasdens[i].dat : %d bytes\n",(int)(GLOBALNRAD*NSEC*sizeof(real)));
   printf ("gasvrad[i].dat : %d bytes\n",(int)(GLOBALNRAD*NSEC*sizeof(real)));
   printf ("gasvtheta[i].dat : %d bytes\n",(int)(GLOBALNRAD*NSEC*sizeof(real)));
-  if (Adiabatic == YES)
+  if ( Adiabatic ) {
     printf ("gasTemperature[i].dat : %d bytes\n",(int)(GLOBALNRAD*NSEC*sizeof(real)));
-  if (AdvecteLabel == YES)
+  }
+  if ( AdvecteLabel ) {
     printf ("gaslabel[i].dat : %d bytes\n",(int)(GLOBALNRAD*NSEC*sizeof(real)));
+  }
   printf ("There will be in total %d outputs\n", NTOT/NINTERM);
   printf ("(which correspond to an elapsed time = %.3f or to %.2f orbits)\n", NTOT*DT, TellNbOrbits(NTOT*DT));
   nbfileoutput = 3.0;
-  if (Adiabatic == YES)
+  if ( Adiabatic ) {
     nbfileoutput += 1.0;
-  if (AdvecteLabel == YES)
+  }
+  if ( AdvecteLabel ) {
     nbfileoutput += 1.0;
+  }
   temp =nbfileoutput*GLOBALNRAD*NSEC*sizeof(real);
   temp *= (real)NTOT/(real)NINTERM;
   temp /= 1024.0*1024.0;
@@ -549,16 +650,16 @@ void GiveTimeInfo (number)
 {
   struct tms buffer;
   real total, last, mean, totalu;
+
   Current = times (&buffer);
   CurrentUser = buffer.tms_utime;
-  if (FirstStep == YES) {
+  if ( FirstStep ) {
     First = Current;
     FirstUser = CurrentUser;
     fprintf (stderr, "Time counters initialized\n");
     FirstStep = NO;
     Ticks = sysconf (_SC_CLK_TCK);
-  }
-  else {
+  } else {
     total = (real)(Current - First)/Ticks;
     totalu= (real)(CurrentUser-FirstUser)/Ticks;
     last  = (real)(CurrentUser - PreceedingUser)/Ticks;
@@ -581,7 +682,10 @@ void InitSpecificTime (profiling, process_name, title)
      char *title;
 {
   struct tms buffer;
-  if (profiling == NO) return;
+
+  if (profiling == NO) {
+    return;
+  }
   Ticks = sysconf (_SC_CLK_TCK);
   times (&buffer);
   process_name->clicks = buffer.tms_utime;
@@ -595,7 +699,10 @@ void GiveSpecificTime (profiling, process_name)
   struct tms buffer;
   long ticks;
   real t;
-  if (profiling == NO) return;
+
+  if (profiling == NO) {
+    return;
+  }
   Ticks = sysconf (_SC_CLK_TCK);
   times (&buffer);
   ticks = buffer.tms_utime - process_name.clicks;

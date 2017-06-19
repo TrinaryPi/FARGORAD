@@ -97,7 +97,7 @@ MAINOBJ         = LowTasks.o SideEuler.o Output.o Init.o main.o Theo.o\
 		  Pframeforce.o split.o merge.o commbound.o fpe.o rebin.o\
 		  sgmain.o sginit.o sgdens.o sgkernel.o sgacc.o sgzero.o\
 		  sgupdate.o sgvelinit.o sgsysinit.o axilib.o aniso.o\
-		  binary.o Radiation.o InitRadiation.o RayTracing.o DebugTools.o\
+		  binary.o Radiation.o InitRadiation.o RayTracing.o DebugTools.o Opacity.o\
 		  
 MPIDUMMY	= mpi_dummy.o
 FFTWDUMMY	= fftw_dummy.o

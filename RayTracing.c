@@ -832,13 +832,6 @@ void ComputeSingleSourceRT (gas_density)
 		for (j = 0; j < ns; j++) {
 			l = j+i*ns;
 			QRT[l] = ComputeQRT(Fs, Rmed[i], gridTau[l], cellTau[l], dr, 0);
-			// if (cellTau[l] < 1) {
-			// 	QRT[l] = Fs*pow(Rmed[i], -2.0)*exp((-1.0)*gridTau[l])*cellTau[l]*InvDiffRsup[i];
-			// } else if ( gridTau[l] > TAUCEILING ) {
-			// 	QRT[l] = 0.0;
-			// } else {
-			// 	QRT[l] = Fs*pow(Rmed[i], -2.0)*exp((-1.0)*gridTau[l])*((1.0-exp((-1.0)*cellTau[l]))*InvDiffRsup[i]);
-			// }
 		}
 	}
 
