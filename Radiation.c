@@ -107,25 +107,27 @@ real compute_varheight_smoothing (xp, yp)
 	// Function
 	dist = sqrt(xp*xp + yp*yp);
 	if (( dist > Rmed[NRAD-1] ) || ( dist < Rmed[0] )) {
-		return 0.0001*THICKNESSSMOOTHING;
+		smoothing = 0.0001*THICKNESSSMOOTHING;
+	} else {
+		smoothing = compute_aspectratio(xp, yp);
+		smoothing = smoothing * THICKNESSSMOOTHING * pow(dist, 1.0+FLARINGINDEX);
 	}
-
-	smoothing = compute_aspectratio(xp, yp);
-	smoothing = smoothing * THICKNESSSMOOTHING * pow(dist, 1.0+FLARINGINDEX);
 
 	// Debug
 	if ( RadiationDebug ) {
 		int check_neg = 1;
     int check_zero = 1;
 		int flag = 0;
+		int GlobalFlag = 0;
 		int foo = CheckValue(smoothing, check_neg, check_zero);
 		if (foo > flag) {
 			flag = foo;
 		}
-		if ( flag != 0 ) {
+		MPI_Allreduce(&flag, &GlobalFlag, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+		if ( GlobalFlag != 0 ) {
 			printf("Error: Non-normal value in variable disc height smoothing. Exiting.\n");
 			MPI_Finalize();
-			exit(flag);
+			exit(GlobalFlag);
 		}
 	}
 
@@ -192,16 +194,18 @@ real compute_aspectratio (x, y)
 	// Debug
 	if ( RadiationDebug ) {
 		int flag = 0;
+		int GlobalFlag = 0;
 		int check_neg = 1;
     int check_zero = 1;
 		int foo = CheckValue(HoverR, check_neg, check_zero);
 		if (foo > flag) {
 			flag = foo;
 		}
-		if ( flag != 0 ) {
+		MPI_Allreduce(&flag, &GlobalFlag, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+		if ( GlobalFlag != 0 ) {
 			printf("Error: Non-normal value in compute_aspectratio (H/r). Exiting.\n");
 			MPI_Finalize();
-			exit(flag);
+			exit(GlobalFlag);
 		}
 	}
 

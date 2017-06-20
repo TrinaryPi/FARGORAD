@@ -18,7 +18,7 @@ CC_INTEL  = icc
 OPT_INTEL = 
 OPTSEQ_INTEL = -O3  -g -Wall
 PARAOPT_INTEL = -O3 -march=native 
-PARACC_INTEL = mpicc
+PARACC_INTEL = OMPI_CC=icc mpicc
 
 # Opteron platform FARGO_ARCH must be set to OPTERON
 CC_OPTERON = gcc
@@ -159,12 +159,6 @@ AUTOINCL    = param.h param_noex.h global_ex.h
 
 include	.config
 EXENAME = ../fargorad
-ifeq ($(FARGO_ARCH),PGI)
-	EXENAME        = ../fargorad_pgi
-endif
-ifeq ($(FARGO_ARCH),gcc)
-	EXENAME        = ../fargorad_gcc
-endif
 
 ARCHIVE		= $(EXENAME:../%=%.tar)
 ARCHIVECOMP	= $(EXENAME:../%=%.tar.gz)

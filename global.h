@@ -53,7 +53,7 @@ IrradiationSource *IrrSources;
 real QminusMed[MAX1D], MeanDiscHeight[MAX1D], omegaOpt[MAX1D], rhoJac[MAX1D];
 // New Star Temperature Taper (6/01/2017)
 real StarTaper;
-boolean RadiationDebug;
+boolean RadiationDebug, PreInitialisation;
 // new - Global variables for two source ray-traced heating - (04/04/2017)
 int global_real_size;
 RayStruct *ray;
@@ -61,4 +61,4 @@ real *Global_sigma, *Global_rkappa, *Global_height, *Global_temperature, *Global
 real DiffRsup[MAX1D], GlobalTheta[MAX1D];
 
 PolarGrid *QDiv, *TempSourcesSinks, *OpticalDepth, *OpticalDepthEff, *lambdafld;
-PolarGrid *TempGuess, *TempGuess_old;
+PolarGrid *TempGuess, *TempGuess_old, *SigmaGlobal;

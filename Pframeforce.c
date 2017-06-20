@@ -10,9 +10,9 @@ static real vt_int[MAX1D], vt_cent[MAX1D];
 extern boolean VarDiscHeight, RadCooling, RadiativeOnly;
 extern boolean StellarSmoothing;
 
-void ComputeIndirectTerm () {
-  
-  if ( BinaryOn == YES ) {
+void ComputeIndirectTerm () 
+{
+  if ( BinaryOn ) {
     IndirectTerm.x = -DiskOnBinaryAcceleration.x;
     IndirectTerm.y = -DiskOnBinaryAcceleration.y;
   } else {
@@ -33,7 +33,6 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
      PolarGrid *Rho, *Energy;  
 {
   int i, j, l, nr, ns, k, s, NbPlan, NbStar;
-
   real x, y, ang, d, dsmooth;
   real xs, ys, ms, M, rs;
   real xp, yp, RRoche, smooth, mp;
@@ -55,10 +54,12 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
   
   /* Indirect term star on gas here */
 
-  ComputeIndirectTerm ();
+  ComputeIndirectTerm();
 
 #pragma omp parallel for
-  for (i = 0; i < (nr+1)*ns; i++) Pot[i] = 0.0;
+  for (i = 0; i < (nr+1)*ns; i++) {
+    Pot[i] = 0.0;
+  }
 
   /* -- Gravitational potential from planet on gas -- */
 
@@ -69,7 +70,7 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
     PlanD = sqrt(xp*xp + yp*yp);
     InvPlanD3 = 1.0/PlanD/PlanD/PlanD;
     RRoche = PlanD*pow((1.0/3.0*mp), 1.0/3.0);
-    if (RocheSmoothing) {
+    if ( RocheSmoothing ) {
       smoothing = RRoche*ROCHESMOOTHING;
     } else {
       if ( VarDiscHeight ) {
@@ -89,31 +90,33 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
 	      y = Rmed[i]*sin(ang);
 	      d = (x-xp)*(x-xp)+(y-yp)*(y-yp);
 	      dsmooth = sqrt(d + smooth);
-	      pot = (-1.0)*G*mp/dsmooth; /* --  Direct term from planet -- */
+        /* --  Direct term from planet -- */
+	      pot = (-1.0)*G*mp/dsmooth; 
         Pot[l] += pot;
         pot = 0.0;
-        if ( BinaryOn == YES ) {
+        if ( BinaryOn ) {
           for (s = 0; s < NbStar; s++) {
-	          if (( Indirect_Term == YES ) && ( bsys->FeelOthers[s] == YES )) {
+	          if (( Indirect_Term ) && ( bsys->FeelOthers[s] )) {
               xs = bsys->x[s];
               ys = bsys->y[s];
               ms = bsys->mass[s];
               d = (xs-xp)*(xs-xp) + (ys-yp)*(ys-yp);
               d = sqrt(d);
               InvPlanD3 = 1.0/d/d/d;
-              pot -= G*ms*mp*((xs-xp)*x + (ys-yp)*y)*InvPlanD3;  /* Indirect term from planets on stars */
+              /* Indirect term from planets on stars */
+              pot -= G*ms*mp*((xs-xp)*x + (ys-yp)*y)*InvPlanD3;  
             }
           }
         } else {
-          pot += G*mp*InvPlanD3*(x*xp + y*yp); /* Indirect term from planet  */
+          /* Indirect term from planet  */
+          pot += G*mp*InvPlanD3*(x*xp + y*yp); 
         }
-      Pot[l] += pot;
+        Pot[l] += pot;
       }
     }
   }
   
   /* -- Indirect Term From Stars -- */
-
 #pragma omp parallel for private(InvD, j, l, ang, x, y)
   for (i = 0; i < nr; i++) {
     InvD = 1.0/Rmed[i];
@@ -126,9 +129,8 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
     }
   }
   
-  /* -- Gravitational potential from star(s) on gas -- */
-
-  if (BinaryOn == YES) {
+  /* -- Direct term from star(s) on gas -- */
+  if ( BinaryOn ) {
     drx = bsys->x[0] - bsys->x[1];
     dry = bsys->y[0] - bsys->y[1];
     A = sqrt(drx*drx + dry*dry);
@@ -137,11 +139,11 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
       ys = bsys->y[s];
       rs = sqrt(xs*xs + ys*ys);
       ms = bsys->mass[s];
-      if (StellarSmoothing == NO) {
+      if ( StellarSmoothing == NO ) {
         smoothing = 0.0;
         ssmooth[s] = 0.0;
         Rstar[s] = (0.49*pow(q[s], 2.0/3.0))/(0.6*pow(q[s], 2.0/3.0) + log(1.0 + pow(q[s], 1.0/3.0)))*A;
-      } else if (RocheSmoothing) {
+      } else if ( RocheSmoothing ) {
         smoothing = Abinary*pow(ms/(3.0*M), 1.0/3.0)*bsys->smooth[s];
         ssmooth[s] = smoothing*smoothing;
       } else {
@@ -158,7 +160,7 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
           x = Rmed[i]*cos(ang);
           y = Rmed[i]*sin(ang);
           d = (x-xs)*(x-xs) + (y-ys)*(y-ys);
-          if (StellarSmoothing == NO) {
+          if ( StellarSmoothing == NO ) {
             if (sqrt(d) < Rstar[s]) {
               pot = (-1.0)*G*bsys->mass[s]*(3.0*pow(Rstar[s], 2.0) - d)/(2.0*pow(Rstar[s], 3.0));
             } else {
@@ -186,6 +188,7 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
       }
     }
   }
+
   // Debug
   if ( debug ) {
   	int check_neg = 0;
@@ -206,18 +209,19 @@ void AdvanceSystemFromDisk (force, Rho, Energy, sys, dt)
   NbPlanets = sys->nb;
   
   for (k = 0; k < NbPlanets; k++) {
-    if (sys->FeelDisk[k] == YES) {
+    if ( sys->FeelDisk[k] ) {
       m = sys->mass[k];
       x = sys->x[k];
       y = sys->y[k];
       r = sqrt(x*x + y*y);
-      if (RocheSmoothing)
+      if ( RocheSmoothing ) {
 	      smoothing = r*pow(m/3.,1./3.)*ROCHESMOOTHING;
-      else {
-        if (VarDiscHeight)
+      } else {
+        if (VarDiscHeight) {
           smoothing = compute_varheight_smoothing(x,y);
-        else
+        } else {
 	        smoothing = compute_smoothing (r);
+        }
       }
       gamma = ComputeAccel (force, Rho, x, y, smoothing, m);
       sys->vx[k] += dt * gamma.x;
@@ -235,7 +239,7 @@ void AdvanceSystemRK5 (bsys, sys, dt)
 {
   int i, n, nplan, nstar;
   boolean *feelothers, *binfeelothers;
-  //real dtheta, omega, rdot, x, y, r, new_r, vx, vy, theta, denom;
+
   nplan = sys->nb;
   nstar = bsys->nb;
   
@@ -320,13 +324,15 @@ void SolveOrbits (sys)
 {
   int i, n;
   real x, y, vx, vy;
+
   n = sys->nb;
+
   for (i = 0; i < n; i++) {
     x = sys->x[i];
     y = sys->y[i];
     vx = sys->vx[i];
     vy = sys->vy[i];
-    FindOrbitalElements (x, y, vx, vy, 1.0+sys->mass[i], i);
+    FindOrbitalElements(x, y, vx, vy, 1.0+sys->mass[i], i);
   }
 } 
 
@@ -336,11 +342,14 @@ real ConstructSequence (u, v, n)
 {
   int i;
   real lapl=0.0;
-  for (i = 1; i < n; i++)
+
+  for (i = 1; i < n; i++) {
     u[i] = 2.0*v[i]-u[i-1];
+  }
   for (i = 1; i < n-1; i++) {
     lapl += fabs(u[i+1]+u[i-1]-2.0*u[i]);
   }
+
   return lapl;
 }
 
@@ -348,15 +357,19 @@ void InitGasDensity (Rho)
      PolarGrid *Rho;
 {
   int i, j, l, nr, ns;
-  real *dens;
+  real *dens, *Dens;
+
   dens = Rho->Field;
+  Dens = SigmaGlobal->Field;
   nr = Rho->Nrad;
   ns = Rho->Nsec;
-  FillSigma ();
+
+  FillSigma();
   for (i = 0; i < nr; i++) {
     for (j = 0; j < ns; j++) {
       l = j+i*ns;
       dens[l] = SigmaMed[i];
+      Dens[l] = SigmaMed[i];
     }
   }
 }
@@ -366,10 +379,12 @@ void InitGasEnergy (Energy)
 {
   int i, j, l, nr, ns;
   real *energy;
+
   energy = Energy->Field;
   nr = Energy->Nrad;
   ns = Energy->Nsec;
-  FillEnergy ();
+
+  FillEnergy();
   for (i = 0; i < nr; i++) {
     for (j = 0; j < ns; j++) {
       l = j+i*ns;
@@ -387,12 +402,14 @@ void InitGasVelocities (Vr, Vt)
   real *vr, *vt, *pres, *cs;
   real  r, omega, ri;
   real viscosity, t1, t2, r1, r2;
+
   vr  = Vr->Field;
   vt  = Vt->Field;
   nr  = Vt->Nrad;
   ns  = Vt->Nsec;
   cs = SoundSpeed->Field;
   pres = Pressure->Field;  /* Pressure is already initialized: cf initeuler in SourceEuler.c ... */
+
   /* --------- */
   // Initialization of azimutal velocity with exact centrifugal balance
   /* --------- */
@@ -402,27 +419,30 @@ void InitGasVelocities (Vr, Vt)
     /* global axisymmetric pressure field, known by all cpus*/
     for (i = 1; i < GLOBALNRAD; i++) {
       vt_int[i] = ( GLOBAL_bufarray[i] - GLOBAL_bufarray[i-1] ) /	\
-	(.5*(Sigma(GlobalRmed[i])+Sigma(GlobalRmed[i-1])))/(GlobalRmed[i]-GlobalRmed[i-1]) + \
-	G*(1.0/GlobalRmed[i-1]-1.0/GlobalRmed[i])/(GlobalRmed[i]-GlobalRmed[i-1]);
+        (.5*(Sigma(GlobalRmed[i])+Sigma(GlobalRmed[i-1])))/(GlobalRmed[i]-GlobalRmed[i-1]) + \
+        G*(1.0/GlobalRmed[i-1]-1.0/GlobalRmed[i])/(GlobalRmed[i]-GlobalRmed[i-1]);
     }
     /* Case of a disk with self-gravity */
     if ( SelfGravity ) { // Better test with CL rigid!
-      if ( !SGZeroMode )
-	  mpi_make1Dprofile (SG_Accr, GLOBAL_AxiSGAccr);
-      	else
-	  GLOBAL_AxiSGAccr = SG_Accr;
-      for (i = 1; i < GLOBALNRAD; i++)
-	vt_int[i] -= ( (Radii[i] - GlobalRmed[i-1])*GLOBAL_AxiSGAccr[i] + \
-		       (GlobalRmed[i] - Radii[i])*GLOBAL_AxiSGAccr[i-1] ) / (GlobalRmed[i]-GlobalRmed[i-1]);
+      if ( !SGZeroMode ) {
+        mpi_make1Dprofile(SG_Accr, GLOBAL_AxiSGAccr);
+      } else {
+        GLOBAL_AxiSGAccr = SG_Accr;
+      }
+      for (i = 1; i < GLOBALNRAD; i++) {
+        vt_int[i] -= ( (Radii[i] - GlobalRmed[i-1])*GLOBAL_AxiSGAccr[i] + \
+          (GlobalRmed[i] - Radii[i])*GLOBAL_AxiSGAccr[i-1] ) / (GlobalRmed[i]-GlobalRmed[i-1]);
+      }
     }
-    for (i = 1; i < GLOBALNRAD; i++)
+    for (i = 1; i < GLOBALNRAD; i++) {
       vt_int[i] = sqrt(vt_int[i]*Radii[i])-Radii[i]*OmegaFrame;
+    }
     
     t1 = vt_cent[0] = vt_int[1]+.75*(vt_int[1]-vt_int[2]);
-    r1 = ConstructSequence (vt_cent, vt_int, GLOBALNRAD);
+    r1 = ConstructSequence(vt_cent, vt_int, GLOBALNRAD);
     vt_cent[0] += .25*(vt_int[1]-vt_int[2]);
     t2 = vt_cent[0];
-    r2 = ConstructSequence (vt_cent, vt_int, GLOBALNRAD);
+    r2 = ConstructSequence(vt_cent, vt_int, GLOBALNRAD);
     t1 = t1-r1/(r2-r1)*(t2-t1);
     vt_cent[0] = t1;
     ConstructSequence (vt_cent, vt_int, GLOBALNRAD);
@@ -430,27 +450,28 @@ void InitGasVelocities (Vr, Vt)
   }
   /* --------- */
   // Initialization with self-gravity, without exact centrifugal balance
-  if (SelfGravity && !CentrifugalBalance)
+  if ( SelfGravity && !CentrifugalBalance ) {
     init_azimutalvelocity_withSG (Vt);
+  }
   /* --------- */
-  if (ViscosityAlpha)
+  if ( ViscosityAlpha ) {
     mpi_make1Dprofile (cs, GLOBAL_bufarray);
+  }
   /* We calculate here the cooling time radial profile (Theo.c) */
-  if (Cooling) {
+  if ( Cooling ) {
     FillCoolingTime();
   }
     /* To fill qplus, one requires to calculate viscosity, hence cs if
        one uses alpha-viscosity */
-  if ((Cooling) || (RadCooling)) {
+  if (( Cooling ) || ( RadCooling )) {
     FillQplus();
   }
   
   for (i = 0; i <= nr; i++) {
-    if (i == nr) {
+    if ( i == nr ) {
       r = Rmed[nr-1];
       ri= Rinf[nr-1];
-    }
-    else {
+    } else {
       r = Rmed[i];
       ri= Rinf[i];
     }
@@ -458,7 +479,7 @@ void InitGasVelocities (Vr, Vt)
     for (j = 0; j < ns; j++) {
       l = j+i*ns;
       /* --------- */
-      if (!SelfGravity) {
+      if ( !SelfGravity ) {
 	      omega = sqrt(G*1.0/r/r/r);
 	      vt[l] = omega*r*sqrt(1.0-pow(MeanDiscHeight[i]/r,2.0)*			\
 			   pow(r,2.0*FLARINGINDEX)*			\
@@ -466,13 +487,14 @@ void InitGasVelocities (Vr, Vt)
       }
       /* --------- */
       vt[l] -= OmegaFrame*r;
-      if (CentrifugalBalance)
+      if ( CentrifugalBalance ) {
 	      vt[l] = vt_cent[i+IMIN];
-      if (i == nr)
+      }
+      if ( i == nr ) {
 	      vr[l] = 0.0;
-      else {
+      } else {
 	      vr[l] = IMPOSEDDISKDRIFT*SIGMA0/SigmaInf[i]/ri;
-	      if (ViscosityAlpha) {
+	      if ( ViscosityAlpha ) {
 	        vr[l] -= 3.0*viscosity/r*(-SIGMASLOPE+2.0*FLARINGINDEX+1.0);
 	      } else {
 	        vr[l] -= 3.0*viscosity/r*(-SIGMASLOPE+.5);
@@ -480,8 +502,9 @@ void InitGasVelocities (Vr, Vt)
       }
     }
   }
-  for (j = 0; j < ns; j++)
+  for (j = 0; j < ns; j++) {
     vr[j] = vr[j+ns*nr] = 0.0;
+  }
   // Commented out for generic simualtions, to match Crida2006 (i think) runs uncomment
   // if ( RadiativeOnly ) {
   //   for (i = 0; i < nr; i++) {

@@ -145,7 +145,7 @@ void InitEuler (Vr, Vt, Rho, Energy)
   Potential    = CreatePolarGrid(NRAD, NSEC, "Potential");
   Pressure     = CreatePolarGrid(NRAD, NSEC, "Pressure");
   SoundSpeed   = CreatePolarGrid(NRAD, NSEC, "SoundSpeed");
-  if (TempInit == NO){
+  if ( TempInit == NO ) {
     Temperature  = CreatePolarGrid(NRAD, NSEC, "Temperature");
   }
   Qplus        = CreatePolarGrid(NRAD, NSEC, "Qplus");
@@ -215,7 +215,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
   FirstGasStepFLAG=1;
   gastimestepcfl = 1;
   int timestep_counter = 0;
-
   real radcooltimestepcfl;
   real dt_rc;
 
@@ -266,11 +265,9 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           }
           gastimestepcfl = ConditionCFL (Vrad, Vtheta, Energy, DT-dtemp, sys, bsys);
         }
-        // printf("CPU_%d: gastimestepcfl = %d\n", CPU_Rank, gastimestepcfl);
 
 	      MPI_Allreduce (&gastimestepcfl, &GasTimeStepsCFL, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 	      dt = (DT-dtemp)/(real)GasTimeStepsCFL;
-        // printf("dt = %g, dtemp = %g, GasTimeStepsCFl = %d\n", dt, dtemp, GasTimeStepsCFL);
       }
       /* The mass of the disc is slowly tapered. */
       /* This should occur over a timescale much */
@@ -284,7 +281,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       if ( BinaryOn ) {
         AccreteOntoStars (Rho,dt, bsys);
       }
-
     }
     dtemp += dt;
 
@@ -305,7 +301,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         } else {
           DiskOnPrimaryAcceleration = ComputeAccel (force, Rho, 0.0, 0.0, 0.0, 0.0);
         }
-
         /* Gravitational potential from star and planet(s) is computed
   	     and stored here*/
         FillForcesArrays (bsys, sys, Rho, Energy);
@@ -331,13 +326,12 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     /* Below we correct vtheta, planet's position and velocities if we
      work in a frame non-centered on the star */
     if ( Corotating ) {
-      	OmegaNew = GetPsysInfo(sys, GET) / dt;
-      	domega = OmegaNew-OmegaFrame;
-      	if ( IsDisk ) {
-	      	CorrectVtheta (Vtheta, domega);
-        }
-
-      	OmegaFrame = OmegaNew;
+      OmegaNew = GetPsysInfo(sys, GET) / dt;
+      domega = OmegaNew-OmegaFrame;
+      if ( IsDisk ) {
+	      CorrectVtheta (Vtheta, domega);
+      }
+      OmegaFrame = OmegaNew;
     }
     RotatePsys (sys, OmegaFrame*dt);
     /* Now we update gas */
@@ -479,20 +473,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     }
     PhysicalTime += dt;
     timestep_counter++;
-    int counter_reset = 100;
-    // if ( (timestep_counter % counter_reset) == 0 ) {
-    //   output_counter += counter_reset;
-    //   masterprint("\n");
-    //   WriteDiskPolar (Temperature, output_counter);
-    // }
-    // if (timestep_counter == counter_reset) {
-    //   masterprint("Time Elapsed = %g, last dt = %g", PhysicalTime, dt);
-    //   masterprint("\nAverages: dt_hydro = %g, dt_energy = %g, n_cycles = %d\n", dt_hydro_av/(real)counter_reset, dt_energy_av/(real)counter_reset, nsteps_av/counter_reset);
-    //   dt_hydro_av = 0.0;
-    //   dt_energy_av = 0.0;
-    //   nsteps_av = 0;
-    //   timestep_counter = 0;
-    // }
   }
   masterprint ("\n");
 }
@@ -504,12 +484,14 @@ void SubStep1 (Vrad, Vtheta, Rho, dt)
   int i, j, l, lim, ljm, ljp, nr, ns;
   boolean selfgravityupdate;
   extern boolean Evanescent;
+
   real *vrad, *vtheta, *rho;
   real *Pot, *Press;
   real *vradint, *vthetaint;
   real gradp, gradphi, vt2, dxtheta;
   real invdxtheta;
-  real supp_torque=0.0;		/* for imposed disk drift */
+  real supp_torque=0.0;/* for imposed disk drift */
+
   nr = Vrad->Nrad;
   ns = Vrad->Nsec;
   rho = Rho->Field;
@@ -531,9 +513,9 @@ void SubStep1 (Vrad, Vtheta, Rho, dt)
         l = j+i*ns;
         lim = l-ns;
         ljp = l+1;
-        if (j == ns-1)
+        if ( j == ns-1 ) {
           ljp = i*ns;
-
+        }
         gradp = (Press[l]-Press[lim])*2.0/(rho[l]+rho[lim])*InvDiffRmed[i];
         gradphi = (Pot[l]-Pot[lim])*InvDiffRmed[i];
         vt2 = vtheta[l]+vtheta[ljp]+vtheta[lim]+vtheta[ljp-ns];
@@ -550,12 +532,13 @@ void SubStep1 (Vrad, Vtheta, Rho, dt)
       for (j = 0; j < ns; j++) {
         l = j+i*ns;
         ljm = l-1;
-        if (j == 0)
+        if ( j == 0 ) {
           ljm = i*ns+ns-1;
+        }
         gradp = (Press[l]-Press[ljm])*2.0/(rho[l]+rho[ljm])*invdxtheta;
-        if ( ZMPlus )
+        if ( ZMPlus ) {
           gradp *= SG_aniso_coeff;
-
+        }
         gradphi = (Pot[l]-Pot[ljm])*invdxtheta;
         vthetaint[l] = vtheta[l]-dt*(gradp+gradphi);
         vthetaint[l] += dt*supp_torque;
@@ -566,10 +549,11 @@ void SubStep1 (Vrad, Vtheta, Rho, dt)
     selfgravityupdate = YES;
     compute_selfgravity(Rho, VradInt, VthetaInt, dt, selfgravityupdate);
   }
-  ComputeViscousTerms (VradInt, VthetaInt, Rho);
-  UpdateVelocitiesWithViscosity (VradInt, VthetaInt, Rho, dt);
-  if (!Evanescent)
-    ApplySubKeplerianBoundary (VthetaInt);
+  ComputeViscousTerms(VradInt, VthetaInt, Rho);
+  UpdateVelocitiesWithViscosity(VradInt, VthetaInt, Rho, dt);
+  if (!Evanescent) {
+    ApplySubKeplerianBoundary(VthetaInt);
+  }
 }
 
 void SubStep2 (Rho, Energy, dt)
@@ -581,6 +565,7 @@ void SubStep2 (Rho, Energy, dt)
   real *vradnew, *vthetanew, *qt, *qr, *energyint;
   real dxtheta, invdxtheta;
   real dv;
+
   nr = Rho->Nrad;
   ns = Rho->Nsec;
   rho = Rho->Field;
@@ -592,6 +577,7 @@ void SubStep2 (Rho, Energy, dt)
   qt = TemperInt->Field;
   energy = Energy->Field;
   energyint = EnergyInt->Field;
+
 #pragma omp parallel for private(j,dxtheta,l,lim,lip,ljm,ljp,dv)
   for (i = 0; i < nr; i++) {
     for (j = 0; j < ns; j++) {
@@ -601,21 +587,18 @@ void SubStep2 (Rho, Energy, dt)
       if ( j == ns-1 ) {
         ljp = i*ns;
       }
-
       dv = vrad[lip]-vrad[l];
       if ( dv < 0.0 ) {
         qr[l] = CVNR*CVNR*rho[l]*dv*dv;
       } else {
         qr[l] = 0.0; 
       }
-
       dv = vtheta[ljp]-vtheta[l];
       if ( dv < 0.0 ) {
         qt[l] = CVNR*CVNR*rho[l]*dv*dv;
       } else {
 	      qt[l] = 0.0;
       }
-
     }
   }
 #pragma omp parallel private(l,lim,lip,ljm,ljp,j,dxtheta,invdxtheta)
@@ -638,7 +621,6 @@ void SubStep2 (Rho, Energy, dt)
 	      if ( j == 0 ) {
           ljm = i*ns+ns-1;
         }
-
 	      vthetanew[l] = vtheta[l]-dt*2.0/(rho[l]+rho[ljm])*(qt[l]-qt[ljm])*invdxtheta;
       }
     }
@@ -656,8 +638,7 @@ void SubStep2 (Rho, Energy, dt)
 	        	if ( j == ns-1 ) {
             	ljp = i*ns;
             }
-
-	        	energyint[l] = energy[l] -				\
+	        	energyint[l] = energy[l] - \
 	         		dt*qr[l]*(vrad[lip]-vrad[l])*InvDiffRsup[i] -	\
 	         		dt*qt[l]*(vtheta[ljp]-vtheta[l])*invdxtheta;
 	      	}
@@ -665,146 +646,6 @@ void SubStep2 (Rho, Energy, dt)
     }
   }
 }
-	       
-// void SubStep3 (Rho, dt)
-//      PolarGrid *Rho;
-//      real dt;
-// {
-//   extern boolean Cooling;
-//   int i, j, l, nr, ns;
-//   int lip, li2p;
-//   real r, rip, ri2p, qpip, qpi2p;
-//   real *dens, *pres, *energy, *energynew;
-//   real *divergence, *Trr, *Trp, *Tpp, *qplus, *qminus, *qirr, *Rij;
-//   real viscosity, energypred, pressurepred, num, den;
-//   real qirr_temp = 0.0, div_temp = 0.0, qminus_temp = 0.0, *qdiv;
-
-//   nr = Rho->Nrad;
-//   ns = Rho->Nsec;
-//   dens = Rho->Field;
-//   pres = Pressure->Field;
-//   energy = EnergyInt->Field;
-//   energynew = EnergyNew->Field;
-//   divergence = DivergenceVelocity->Field;
-//   qplus = Qplus->Field;
-//   qdiv = QDiv->Field;
-//   if ( RadCooling )
-//     qminus = Qminus->Field;
-//   if ( Irradiation )
-//     qirr = Qirr->Field;
-//   if ( RadTransport )
-//     Rij = TempSourcesSinks->Field;
-//   Trr = TAURR->Field;
-//   Trp = TAURP->Field;
-//   Tpp = TAUPP->Field;
-//   /* In this substep we take into account  */
-//   /* the source part of energy equation  */
-//   /* We evolve internal energy with  */
-//   /* compression/dilatation and heating terms */
-//   // #pragma omp parallel private(j,l, viscosity, energypred, pressurepred, div_temp)
-//   #pragma omp parallel private(j, l, energypred, pressurepred, div_temp)
-//   { 
-//     // if (( HydroOn ) && ( !RadiativeOnly )) {
-//   //   if ( !RadiativeOnly ) {
-//   // #pragma omp for
-//   //     /* We calculate the heating source term Qplus from i=1 */
-//   //     for (i = 1; i < nr; i++) { /* Trp defined from i=1 */
-//   //       viscosity = FViscosity (Rmed[i]); /* Global_Bufarray holds cs */
-//   //       for (j = 0; j < ns; j++) {
-//   // 	      l = j+i*ns;
-//   //         if (viscosity != 0.0) {
-//   //           qplus[l] = 0.5/viscosity/dens[l]*(Trr[l]*Trr[l] + \
-//   //            Trp[l]*Trp[l] +  \
-//   //            Tpp[l]*Tpp[l] );
-//   //           qplus[l] += (2.0/9.0)*viscosity*dens[l]*divergence[l]*divergence[l];
-//   //         } else
-//   //           qplus[l] = 0.0;
-//   //       }
-//   //     }
-//   //     /* We calculate the heating source term Qplus for i=0 */
-//   //     i = 0;
-//   //     r    = Rmed[i];
-//   //     rip  = Rmed[i+1];
-//   //     ri2p = Rmed[i+2];
-//   //     for (j = 0; j < ns; j++) {
-//   //       l = j+i*ns;
-//   //       lip = l+ns;
-//   //       li2p = lip+ns;
-//   //       qpip = qplus[lip];   /* qplus(i=1,j) */
-//   //       qpi2p = qplus[li2p]; /* qplus(i=2,j) */
-//   //       if (viscosity != 0.0) {
-//   //         /* power-law extrapolation */
-//   //         qplus[l] = qpip*exp( log(qpip/qpi2p) * log(r/rip) / log(rip/ri2p) );
-//   //       } else {
-//   //         qplus[l] = 0.0;
-//   //       }
-//   //     }
-//   //   } else {
-//   // #pragma omp for  
-//   //     for (i = 0; i < nr; i++) {
-//   //       for (j = 0; j < ns; j++) { 
-//   //         l = j+i*ns;
-//   //         qplus[l] = 0.0;
-//   //       }
-//   //     }
-//   //   }
-
-//     if ( debug ) {
-//     	int check_neg = 1;
-//     	int check_zero = 1;
-//     	CheckField(Qplus, check_neg, check_zero, "SubStep3");
-//     }
-
-//     /* Now we can update energy with source terms from i=0 */
-//     for (i = 0; i < nr; i++) {
-//       for (j = 0; j < ns; j++) {
-// 	      l = j+i*ns;
-//         if ( !RadiativeOnly ) {
-//           div_temp = divergence[l];
-//         }
-
-//         if ( !ImplicitRadiative ) {
-//           if ( RadCooling ) {
-//             qminus_temp = qminus[l];
-//           }
-//           if ( Irradiation ) {
-//             qirr_temp = qirr[l];
-//           }
-//         }
-
-//         if ( Cooling ) {
-//           num = EnergyMed[i]*dt*dens[l]/SigmaMed[i] + CoolingTimeMed[i]*energy[l] + dt*CoolingTimeMed[i]*(qirr_temp + qplus[l]-QplusMed[i]*dens[l]/SigmaMed[i]);
-//           den = dt + CoolingTimeMed[i] + (ADIABATICINDEX-1.0)*dt*CoolingTimeMed[i]*div_temp;
-//           energynew[l] = num/den;
-//         } else if ( RadCooling ) {
-//           energypred = energy[l] + dt*(qirr_temp + qplus[l] - qminus_temp - pres[l]*div_temp);
-//           pressurepred = (ADIABATICINDEX - 1.0)*energypred;
-//           qdiv[l] = 0.5*(pres[l]+pressurepred)*div_temp;
-//           energynew[l] = energy[l] + dt*(qirr_temp + qplus[l] - qminus_temp - qdiv[l]);
-//           // EnergySafetyFloor = dens[l]*Tfloor*R/(MU*(ADIABATICINDEX-1));
-//           // if (energynew[l] < EnergySafetyFloor)
-//           //   energynew[l] = EnergySafetyFloor;
-//         } else {
-//           num = energy[l] + dt*(qirr_temp + qplus[l] - qminus_temp);
-//           den = 1.0+(ADIABATICINDEX-1.0)*dt*div_temp;
-//           energynew[l] = num/den;
-//         }
-
-//         // if (energynew[l] < 0) {
-//         // 	printf("Qirr = %g, Qminus = %g, Qplus = %g, Pressure term = %g\n", qirr_temp, qminus[l], qplus[l], 0.5*(pres[l]+pressurepred)*div_temp);
-//         //   printf("Net energising term = %g\n", dt*(qirr_temp + qplus[l] - qminus[l] - 0.5*(pres[l]+pressurepred)*div_temp));
-//         // }
-//       }
-//     }
-
-//     // Debug
-//     if ( debug ) {
-//     	int check_neg = 1;
-//     	int check_zero = 1;
-//     	CheckField(EnergyNew, check_neg, check_zero, "SubStep3");
-//     }
-//   }
-// }
 
 void SubStep3 (Rho, dt)
   // Input
@@ -851,7 +692,6 @@ void SubStep3 (Rho, dt)
           qirr_temp = qirr[l];
         }
       }
-
       if ( Cooling ) {
         num = EnergyMed[i]*dt*dens[l]/SigmaMed[i] + CoolingTimeMed[i]*energy[l] + dt*CoolingTimeMed[i]*(qirr_temp + qplus[l]-QplusMed[i]*dens[l]/SigmaMed[i]);
         den = dt + CoolingTimeMed[i] + (ADIABATICINDEX-1.0)*dt*CoolingTimeMed[i]*div_temp;
@@ -889,7 +729,6 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   real *xs, *ys, *xp, *yp, *ms, *mp, *Ppair, Pmin, dist, dt_nbod;
   real *soundspeed;
   
-
   soundspeed = SoundSpeed->Field;
   ns = Vtheta->Nsec;
   nr = Vtheta->Nrad;
@@ -903,6 +742,7 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   mp = sys->mass;
   nstar = bsys->nb;
   nplan = sys->nb;
+
   newdt = 1.0e30;
   ij = 0;
   Pmin = 1.0e30;
@@ -974,8 +814,8 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   if (( BinaryOn  ) && ( LiveBodies )) {
     for (i = 0; i < nstar; i++) {
       for (j = 0; j < nplan; j++) {
-        dist = pow((xs[i]-xp[j]), 2.0)+pow((ys[i]-yp[j]), 2.0);
-        Ppair[ij] = 2.0*PI*sqrt(dist*sqrt(dist)/G/(ms[i]+mp[j]));
+        dist = pow((xs[i] - xp[j]), 2.0)+pow((ys[i] - yp[j]), 2.0);
+        Ppair[ij] = 2.0*PI*sqrt(dist*sqrt(dist)/G/(ms[i] + mp[j]));
         if (Ppair[ij] < Pmin){
           Pmin = Ppair[ij];
         }
@@ -1034,6 +874,17 @@ void ComputeSoundSpeed (Rho, Energy)
   dens = Rho->Field;
   energ = Energy->Field;
   cs = SoundSpeed->Field;
+
+  if ( debug ) {
+    int check_neg = 1;
+    int check_zero = 1;
+    CheckField(Rho, check_neg, check_zero, "ComputeSoundSpeed_rho");
+  }
+  if ( debug ) {
+    int check_neg = 1;
+    int check_zero = 1;
+    CheckField(Energy, check_neg, check_zero, "ComputeSoundSpeed_energy");
+  }
   for ( i = 0; i < nr; i++ ) {
     for ( j = 0; j < ns; j++ ) {
       l = i*ns + j;
@@ -1347,8 +1198,8 @@ void ApplyFloor (gas_density, gas_energy)
 
   // Function
 #pragma omp parallel for private(j,l, EnergySafetyFloor)
-  for (i = 0; i < nr; i++){
-    for (j = 0; j < ns; j++){
+  for (i = 0; i < nr; i++) {
+    for (j = 0; j < ns; j++) {
       l = j+i*ns;
       if (dens[l] < SigmaSafetyFloor)
         dens[l] = SigmaSafetyFloor;

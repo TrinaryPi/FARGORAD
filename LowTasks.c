@@ -6,10 +6,18 @@ real GetGlobalIFrac (r)
 {
   int i=0;
   real ifrac;
-  if (r < GlobalRmed[0]) return 0.0;
-  if (r > GlobalRmed[GLOBALNRAD-1]) return (real)GLOBALNRAD-1.0;
-  while (GlobalRmed[i] <= r) i++;
+
+  if (r < GlobalRmed[0]) {
+    return 0.0;
+  }
+  if (r > GlobalRmed[GLOBALNRAD-1]) {
+    return (real)GLOBALNRAD-1.0;
+  }
+  while (GlobalRmed[i] <= r) {
+    i++;
+  }
   ifrac = (real)i+(r-GlobalRmed[i-1])/(GlobalRmed[i]-GlobalRmed[i-1])-1.0;
+
   return ifrac;
 }
 
@@ -23,7 +31,10 @@ void prs_exit (numb)
 void masterprint (const char *template, ...)
 {
   va_list ap;
-  if (!CPU_Master) return;
+
+  if (!CPU_Master) {
+    return;
+  }
   va_start (ap, template);
   vfprintf (stdout, template, ap);
   va_end (ap);
@@ -32,7 +43,10 @@ void masterprint (const char *template, ...)
 void mastererr (const char *template, ...)
 {
   va_list ap;
-  if (!CPU_Master) return;
+
+  if (!CPU_Master) {
+    return;
+  }
   va_start (ap, template);
   vfprintf (stderr, template, ap);
   va_end (ap);
@@ -50,12 +64,18 @@ void *prs_malloc (number_of_bytes)
 {
   void *ptr;
   long i;
-  if (number_of_bytes <= 0)
+
+  if (number_of_bytes <= 0) {
     return NULL;
+  }
   ptr = malloc (number_of_bytes);
-  if (ptr == NULL) erreur ("Not enough memory.");
-  for (i = 0; i < number_of_bytes; i++)
+  if (ptr == NULL) {
+    erreur ("Not enough memory.");
+  }
+  for (i = 0; i < number_of_bytes; i++) {
     *((char *)ptr+i) = 0;
+  }
+
   return ptr;
 }
 
@@ -65,10 +85,9 @@ void message (msg)
   fprintf (stdout, "%s", msg);
 }
 
-PolarGrid    *
-CreatePolarGrid(Nr, Ns, name)
-int             Nr, Ns;
-char           *name;
+PolarGrid *CreatePolarGrid(Nr, Ns, name)
+  int Nr, Ns;
+  char *name;
 {
   PolarGrid      *array;
   real           *field;
@@ -76,14 +95,17 @@ char           *name;
   int             i, j, l;
   
   array = (PolarGrid *) malloc(sizeof(PolarGrid));
-  if (array == NULL)
+  if (array == NULL) {
     erreur("Insufficient memory for PolarGrid creation");
+  }
   field = (real *) malloc(sizeof(real) * (Nr + 3) * (Ns + 1) + 5);
-  if (field == NULL)
+  if (field == NULL) {
     erreur("Insufficient memory for PolarGrid creation");
+  }
   string = (char *) malloc(sizeof(char) * 80);
-  if (string == NULL)
+  if (string == NULL) {
     erreur("Insufficient memory for PolarGrid creation");
+  }
   sprintf(string, "gas%s", name);
   array->Field = field;
   array->Name = string;
@@ -95,6 +117,7 @@ char           *name;
       field[l] = 0.;
     }
   }
+  
   return array;
 }
 

@@ -101,9 +101,9 @@ IrradiationSource *InitIrradiationSources(filename, ns)
 {	
 	// Declaration
 	int i = 0;
-  	char s[512], nm[512], test1[512], *s1;
-  	float rstar, tstar;
-  	real *rs, *ts, constant;
+  char s[512], nm[512], test1[512], *s1;
+  float rstar, tstar;
+  real *rs, *ts, constant;
 	boolean centralsource;
 	FILE *input;
 
@@ -119,18 +119,18 @@ IrradiationSource *InitIrradiationSources(filename, ns)
 	IrrSources->nb = ns;
 	while ( fgets(s, 510, input) != NULL ) {
 		sscanf(s, "%s ", nm);
-	  	if ( isalpha(s[0]) ) {
-	  		s1 = s + strlen(nm);
-	  		sscanf(s1 + strspn(s1, "\t :=>_"), "%f %f %s", &rstar, &tstar, test1);
-	    	centralsource = YES;
-	    	if ( tolower(*test1) == 'n' )
-	    		centralsource = NO;  
-	    	rs[i] = (real)rstar;
-	    	ts[i] = (real)tstar/constant;
-	    	IrrSources->CentralSource[i] = centralsource;
-	    	i++;
+  	if ( isalpha(s[0]) ) {
+  		s1 = s + strlen(nm);
+  		sscanf(s1 + strspn(s1, "\t :=>_"), "%f %f %s", &rstar, &tstar, test1);
+    	centralsource = YES;
+    	if ( tolower(*test1) == 'n' )
+    		centralsource = NO;  
+    	rs[i] = (real)rstar;
+    	ts[i] = (real)tstar/constant;
+    	IrrSources->CentralSource[i] = centralsource;
+    	i++;
 		}	
-  	}
+  }
 
   // Output
   return IrrSources;
@@ -166,8 +166,6 @@ IrradiationSource *AllocIrradiationSources(nsources)
     rstar[i] = tstar[i] = 0.0;
     centralsource[i] = YES;
   }
-  // if (( nsources == 1 ) && ( centralsource[0] == NO ))
-  // 	centralsource[0] = YES;
 
   // Output
   return array;
@@ -218,7 +216,6 @@ void InitRadTransport ()
 	J = GLOBALNRAD;
 	dy = 2*PI/(real)NSEC;
 	
-
 	// Function/Output
 	masterprint("Initialising the Radiation Transport Module...\n");
 	masterprint("############################################################################\n");
@@ -240,7 +237,7 @@ void InitRadTransport ()
 		masterprint("# Optimal Omega       = YES\n");
 		masterprint("# Omega               = %f->%f\n", MINom, MAXom);
 	} else if ( ChebyshevOmega ) {
-		# pragma omp parallel for private (dx, dxdy2, rhoJac)
+# pragma omp parallel for private (dx, dxdy2, rhoJac)
 		for (i = 0; i < NRAD; i++) {
 			dx = Rsup[i] - Rinf[i];
 			dxdy2 = dx*dx/dy/dy;
@@ -250,21 +247,26 @@ void InitRadTransport ()
 		masterprint("# Chebyshev Accl.     = YES\n");
 	} else {
 # pragma omp parallel for
-		for (i = 0; i < NRAD; i++)
+		for (i = 0; i < NRAD; i++) {
 			omegaOpt[i] = SOROMEGA;
+		}
 		masterprint("# Optimal Omega       = NO\n");
 		masterprint("# Omega               = %f\n", SOROMEGA);
 	}
 	masterprint("# Max Iterations      = %d\n", MAXITERATIONS);
 	masterprint("# Relative Tolerance  = %g\n", TOLERANCE);
-	if ( Relative_Diff )
+	if ( Relative_Diff ) {
 		masterprint("# Tolerance Calc.     = Relative Difference\n");
-	if ( Relative_Max )
+	}
+	if ( Relative_Max ) {
 		masterprint("# Tolerance Calc.     = Relative Maximum\n");
-	if ( Residual_Diff )
+	}
+	if ( Residual_Diff ) {
 		masterprint("# Tolerance Calc.     = Residual Difference\n");
-	if ( Residual_Max )
+	}
+	if ( Residual_Max ) {
 		masterprint("# Tolerance Calc.     = Residual Maximum\n");
+	}
 	masterprint("############################################################################\n");
 	masterprint("Done.\n\n");
 	ResetTempSourcesSinks();
@@ -293,59 +295,66 @@ void ListEOSParams()
 	// Input N/A
 {	
 	// Function/Output
-	if ( Adiabatic == NO )
+	masterprint("\n");
+	if ( Adiabatic == NO ) {
 		masterprint("Equation of State is Isothermal\n");
-	else {
+	} else {
 		masterprint("Equation of State is Adiabatic.\nThe following Heating/Cooling/Transport processes are active:\n");
 		masterprint("############################################################################\n");
-		if ( HydroOn )
+		if ( HydroOn ) {
 			masterprint("# HydroOn            = YES. Viscous heating effects are on.\n");
-	  else
+		} else {
 	  	masterprint("# HydroOn            = NO.  Viscous heating effects are off.\n");
+	  }
 
-		if ( RadiativeOnly )
+		if ( RadiativeOnly ) {
 			masterprint("# RadiativeOnly      = YES. Heating/Cooling terms are radiative only (no Pressure heating).\n");
-		else
+		} else {
 			masterprint("# RadiativeOnly      = NO.  Pressure heating term is included.\n");
+		}
 		
 		if ( Cooling ) {
-			if ( CustomCooling )
+			if ( CustomCooling ) {
 				masterprint("# CustomCooling      = YES. Using a Custom cooling prescription, Cooling time = %g P(r=1).\n", COOLINGTIME0);
-			else
+			} else {
 				masterprint("# Cooling            = YES. Cooling time = %g.\n", COOLINGTIME0);
-
-		} else if ( RadCooling )
+			}
+		} else if ( RadCooling ) {
 			masterprint("# RadCooling         = YES. Radiative Cooling from top and bottom surfaces of disc.\n");
-		else
+		} else {
 			masterprint("# Cooling            = NO.  No Cooling terms.\n");
+		}
 
 		if ( Irradiation ) {
-			if ( STARTAPER > 1 )
+			if ( STARTAPER > 1 ) {
 				masterprint("# Irradiation        = YES. Heating of disc surfaces by stellar irradiation. Stellar luminosity tapered on over %g P(r=1).\n", STARTAPER);
-			else
+			} else {
 				masterprint("# Irradiation        = YES. Heating of disc surfaces by stellar irradiation.\n");
-			
-		} else
-		masterprint("# Irradiation        = NO.  No Irradation of disc surfaces.\n");
+			}
+		} else {
+			masterprint("# Irradiation        = NO.  No Irradation of disc surfaces.\n");
+		}
 
 		if ( RayTracingHeating ) {
-		masterprint("# RayTracingHeating  = YES.");
-			if ( ExplicitRayTracingHeating )
+			masterprint("# RayTracingHeating  = YES.");
+			if ( ExplicitRayTracingHeating ) {
 				masterprint(" Disc midplane stellar irradiative heating solved explicitly.");
-			else
+			} else {
 				masterprint(" Disc midplane stellar irradiative heating solved implicitly in SOR solver.");
-
-			if ( STARTAPER > 1 )
+			}
+			if ( STARTAPER > 1 ) {
 				masterprint(" Stellar luminosity tapered on over %g P(r=1).", STARTAPER);
-
+			}
 			masterprint("\n");
-		} else
+		} else {
 			masterprint("# RayTracingHeating  = NO.  No RT irradiative heating.\n");
+		}
 
-		if ( RadTransport )
+		if ( RadTransport ) {
 			masterprint("# RadTransport       = YES. FLD of radiation in disc midplane by implicit SOR solver.\n");
-		else
+		} else {
 			masterprint("# RadTransport       = NO.  No FLD.\n");
+		}
 	
 		masterprint("############################################################################\n\n");
 	}

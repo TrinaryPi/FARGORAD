@@ -11,7 +11,7 @@ real            ScalingFactor = 1.0;
 real            Abinary;
 Pair            bin_acc, acc_rate;
 extern boolean  RadCooling, Irradiation, RadTransport, RayTracingHeating;
-extern boolean  TempInit, RadiationDebug=NO;
+extern boolean  TempInit, RadiationDebug=NO, PreInitialisation;
 
 int
 main(argc, argv)
@@ -36,6 +36,7 @@ main(argc, argv)
   BinarySystem *bsys;
   Force *force;
   int FirstRestartOutput = 0;
+  PreInitialisation = YES;
   
   MPI_Init (&argc, &argv);
   MPI_Comm_rank (MPI_COMM_WORLD, &CPU_Rank);
@@ -156,6 +157,7 @@ main(argc, argv)
   masterprint ("Allocating arrays...");
   fflush (stdout);
   gas_density        = CreatePolarGrid(NRAD, NSEC, "dens");
+  SigmaGlobal        = CreatePolarGrid(NRAD, NSEC, "Dens");
   gas_v_rad          = CreatePolarGrid(NRAD, NSEC, "vrad");
   gas_v_theta        = CreatePolarGrid(NRAD, NSEC, "vtheta");
   gas_energy         = CreatePolarGrid(NRAD, NSEC, "energy");
@@ -187,7 +189,6 @@ main(argc, argv)
   
   /* Gas density initialization */
   InitGasDensity (gas_density);
-    
   /* If energy equation is taken into account, we initialize the gas
      thermal energy */
   if ( Adiabatic ) {
@@ -278,6 +279,8 @@ main(argc, argv)
     StarTaper = (STARTAPER > 1.0 ? 0 : 1.0);
     InitialiseRadiationModule (gas_density, bsys);
   }
+
+  PreInitialisation = NO;
 
   for (i = begin_i; i <= NTOT; i++) {
     InnerOutputCounter++;

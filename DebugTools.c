@@ -1,22 +1,22 @@
 #include "mp.h"
 
-void CheckField(Field, checkNegative, checkZero, note_string)
+void CheckField(testField, checkNegative, checkZero, note_string)
 	// Input
-	PolarGrid *Field;
+	PolarGrid *testField;
 	int checkNegative;
 	int	checkZero;
 	char *note_string;
 {
 	// Declaration
 	int		nr, ns, i, j, l;
-	int		flagNonFinite, flagNegative, flagZero, flag1 = 0, flag2 = 0, flag3 = 0;
+	int 	i_Crash, j_Crash, CPU_Crash;
+	int		flagNonFinite, flagNegative, flagZero, flag1=0, flag2=0, flag3=0;
 	real	*fieldvals;
 
 	// Assignment
-	nr = Field->Nrad;
-	ns = Field->Nsec;
-	fieldvals = Field->Field;
-
+	nr = testField->Nrad;
+	ns = testField->Nsec;
+	fieldvals = testField->Field;
 
 	// Function
 	for (i = 0; i < nr; i++) {
@@ -31,13 +31,14 @@ void CheckField(Field, checkNegative, checkZero, note_string)
 			}
 		}
 	}
-
+	printf("CPU_%d: flag1 = %d, GlobalFlag = %d\n", CPU_Rank, flag1, flagNonFinite);
 	// Output
 	MPI_Allreduce (&flag1, &flagNonFinite, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+	printf("CPU_%d: flag1 = %d, GlobalFlag = %d\n", CPU_Rank, flag1, flagNonFinite);
 	if ( flagNonFinite != 0 ) {
-    masterprint("Error: Non-finite value in %s (%s). Exiting.\n", Field->Name, note_string);
+    masterprint("Error: Non-finite value in %s (%s). First occurence @ i = %d, j = %d, CPU_%d. Exiting.\n", testField->Name, note_string, i_Crash, j_Crash, CPU_Crash);
     if ( RadiationDebug ) {
-			DumpRadiationFields(Field);
+			DumpRadiationFields(testField);
 		}
    	MPI_Finalize();
 		exit(flagNonFinite);
@@ -45,9 +46,9 @@ void CheckField(Field, checkNegative, checkZero, note_string)
   if ( checkNegative == 1 ) {
 		MPI_Allreduce (&flag2, &flagNegative, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 		if ( flagNegative != 0 ) {
-			masterprint("Error: Negative value in %s (%s). Exiting.\n", Field->Name, note_string);
+			masterprint("Error: Negative value in %s (%s). First occurence @ i = %d, j = %d, CPU_%d. Exiting.\n", testField->Name, note_string, i_Crash, j_Crash, CPU_Crash);
 			if ( RadiationDebug ) {
-				DumpRadiationFields(Field);
+				DumpRadiationFields(testField);
 			}
 			MPI_Finalize();
 			exit(flagNegative);
@@ -56,9 +57,9 @@ void CheckField(Field, checkNegative, checkZero, note_string)
 	if ( checkZero == 1 ) {
 		MPI_Allreduce (&flag3, &flagZero, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 		if ( flagZero != 0 ) {
-			masterprint("Error: Zero value in %s (%s). Exiting.\n", Field->Name, note_string);
+			masterprint("Error: Zero value in %s (%s). First occurence @ i = %d, j = %d, CPU_%d. Exiting.\n", testField->Name, note_string, i_Crash, j_Crash, CPU_Crash);
 			if ( RadiationDebug ) {
-				DumpRadiationFields(Field);
+				DumpRadiationFields(testField);
 			}
 			MPI_Finalize();
 			exit(flagZero);
@@ -136,38 +137,41 @@ void DumpRadiationFields(Field)
 	PolarGrid *Field;
 {
 	// Declaration
-	extern boolean RadCooling, Irradiation, RayTracingHeating, RadTransport, VarDiscHeight;
+	extern boolean RadCooling, Irradiation, RayTracingHeating, RadTransport, VarDiscHeight, PreInitialisation;
 
 	// Function (and Output)
-	if ( RadCooling ) {
+	if ( PreInitialisation == NO ) {
+		if ( RadCooling ) {
 		WriteDiskPolar(Qminus, 9999);
+		}
+		if ( Irradiation ) {
+			WriteDiskPolar(Qirr, 9999);
+		}
+		if ( RayTracingHeating ) {
+			WriteDiskPolar(QirrRT, 9999);
+		}
+		if ( RadTransport ) {
+			WriteDiskPolar(Rfld, 9999);
+			WriteDiskPolar(lambdafld, 9999);
+			WriteDiskPolar(Darr, 9999);
+			WriteDiskPolar(Barr, 9999);
+			WriteDiskPolar(U1arr, 9999);
+			WriteDiskPolar(U2arr, 9999);
+			WriteDiskPolar(U3arr, 9999);
+			WriteDiskPolar(U4arr, 9999);
+			WriteDiskPolar(TempGuess, 9999);
+		}
+		if (( Irradiation ) || ( RadCooling )) {
+			WriteDiskPolar(OpticalDepth, 9999);
+			WriteDiskPolar(OpticalDepthEff, 9999);
+		}
+		if ( VarDiscHeight ) {
+			WriteDiskPolar(DiscHeight, 9999);
+		}
+		WriteDiskPolar(RKappaval, 9999);
 	}
-	if ( Irradiation ) {
-		WriteDiskPolar(Qirr, 9999);
-	}
-	if ( RayTracingHeating ) {
-		WriteDiskPolar(QirrRT, 9999);
-	}
-	if ( RadTransport ) {
-		WriteDiskPolar(Rfld, 9999);
-		WriteDiskPolar(lambdafld, 9999);
-		WriteDiskPolar(Darr, 9999);
-		WriteDiskPolar(Barr, 9999);
-		WriteDiskPolar(U1arr, 9999);
-		WriteDiskPolar(U2arr, 9999);
-		WriteDiskPolar(U3arr, 9999);
-		WriteDiskPolar(U4arr, 9999);
-		WriteDiskPolar(TempGuess, 9999);
-	}
-	if ( VarDiscHeight ) {
-		WriteDiskPolar(DiscHeight, 9999);
-	}
-	if (( Irradiation ) || ( RadCooling )) {
-		WriteDiskPolar(OpticalDepth, 9999);
-		WriteDiskPolar(OpticalDepthEff, 9999);
-	}
+	WriteDiskPolar(SigmaGlobal, 9999);
 	WriteDiskPolar(Temperature, 9999);
-	WriteDiskPolar(RKappaval, 9999);
 	WriteDiskPolar(Field, 9999);
 	WriteDiskPolar(Qplus, 9999);
 	WriteDiskPolar(QDiv, 9999);
