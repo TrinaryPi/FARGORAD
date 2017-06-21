@@ -75,7 +75,6 @@ int CheckValue(Value, checkNegative, checkZero)
 
 	// Function (and Output)
 	tmp = isfinite(Value);
-	printf("Value = %f, tmpflag = %d\n", Value, tmp);
 	if ( tmp != 1 ) {
 		flag = 1;
 	}

@@ -114,7 +114,7 @@ void FillPolar1DArrays ()
   for (i = 1; i < NRAD; i++) {
     InvDiffRmed[i] = 1.0/(Rmed[i]-Rmed[i-1]);
   }
-  if (CPU_Master) {
+  if  ( CPU_Master ) {
     output = fopen (OutputName, "w");
     if (output == NULL) {
       mastererr ("Can't write %s.\nProgram stopped.\n", OutputName);
