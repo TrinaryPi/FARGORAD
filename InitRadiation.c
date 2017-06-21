@@ -28,7 +28,6 @@ void InitialiseRadiationModule(density, bsys)
 	}
 	if (( RadCooling ) || ( Irradiation ) || ( RadTransport ) || ( RayTracingHeating )) {
 		PrintGlobalConstants();
-		printf("CPU_%d: PrintGlobalConstants\n", CPU_Rank);
 	}
 	if ( RadCooling ) {
 		ComputeQminus(density, bsys);
@@ -36,13 +35,12 @@ void InitialiseRadiationModule(density, bsys)
 	if ( Irradiation ) {
 		ComputeQirr(density, bsys);
 	}
+	printf("CPU_%d: ComputeRayTracingHeating\n", CPU_Rank);
 	if ( RayTracingHeating ) {
 		ComputeRayTracingHeating(density, bsys);
-		printf("CPU_%d: ComputeRayTracingHeating\n", CPU_Rank);
 	}
 	if ( RadTransport ) {
 		ComputeRadTransCoeffs(density, DT);
-		printf("CPU_%d: ComputeRadTransCoeffs\n", CPU_Rank);
 	}
 }
 
