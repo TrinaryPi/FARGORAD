@@ -875,16 +875,6 @@ void ComputeSoundSpeed (Rho, Energy)
   energ = Energy->Field;
   cs = SoundSpeed->Field;
 
-  if ( debug ) {
-    int check_neg = 1;
-    int check_zero = 1;
-    CheckField(Rho, check_neg, check_zero, "ComputeSoundSpeed_rho");
-  }
-  if ( debug ) {
-    int check_neg = 1;
-    int check_zero = 1;
-    CheckField(Energy, check_neg, check_zero, "ComputeSoundSpeed_energy");
-  }
   for ( i = 0; i < nr; i++ ) {
     for ( j = 0; j < ns; j++ ) {
       l = i*ns + j;

@@ -9,7 +9,6 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 {
 	// Declaration
 	int		nr, ns, i, j, l;
-	int 	i_Crash, j_Crash, CPU_Crash;
 	int		flagNonFinite, flagNegative, flagZero, flag1=0, flag2=0, flag3=0;
 	real	*fieldvals;
 
@@ -31,12 +30,10 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 			}
 		}
 	}
-	printf("CPU_%d: flag1 = %d, GlobalFlag = %d\n", CPU_Rank, flag1, flagNonFinite);
 	// Output
 	MPI_Allreduce (&flag1, &flagNonFinite, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-	printf("CPU_%d: flag1 = %d, GlobalFlag = %d\n", CPU_Rank, flag1, flagNonFinite);
 	if ( flagNonFinite != 0 ) {
-    masterprint("Error: Non-finite value in %s (%s). First occurence @ i = %d, j = %d, CPU_%d. Exiting.\n", testField->Name, note_string, i_Crash, j_Crash, CPU_Crash);
+    masterprint("Error: Non-finite value in %s (%s). Exiting.\n", testField->Name, note_string);
     if ( RadiationDebug ) {
 			DumpRadiationFields(testField);
 		}
@@ -46,7 +43,7 @@ void CheckField(testField, checkNegative, checkZero, note_string)
   if ( checkNegative == 1 ) {
 		MPI_Allreduce (&flag2, &flagNegative, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 		if ( flagNegative != 0 ) {
-			masterprint("Error: Negative value in %s (%s). First occurence @ i = %d, j = %d, CPU_%d. Exiting.\n", testField->Name, note_string, i_Crash, j_Crash, CPU_Crash);
+			masterprint("Error: Negative value in %s (%s). Exiting.\n", testField->Name, note_string);
 			if ( RadiationDebug ) {
 				DumpRadiationFields(testField);
 			}
@@ -57,7 +54,7 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 	if ( checkZero == 1 ) {
 		MPI_Allreduce (&flag3, &flagZero, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 		if ( flagZero != 0 ) {
-			masterprint("Error: Zero value in %s (%s). First occurence @ i = %d, j = %d, CPU_%d. Exiting.\n", testField->Name, note_string, i_Crash, j_Crash, CPU_Crash);
+			masterprint("Error: Zero value in %s (%s). Exiting.\n", testField->Name, note_string);
 			if ( RadiationDebug ) {
 				DumpRadiationFields(testField);
 			}
@@ -74,23 +71,22 @@ int CheckValue(Value, checkNegative, checkZero)
 	int	checkZero;
 {
 	// Declaration
-	int flag = 0;
+	int flag=0, tmp=0;
 
 	// Function (and Output)
-	flag = isfinite(Value);
-	if (flag != 0) {
-		return flag;
+	tmp = isfinite(Value);
+	printf("Value = %f, tmpflag = %d\n", Value, tmp);
+	if ( tmp != 1 ) {
+		flag = 1;
 	}
-	if (checkNegative == 1) {
+	if ( checkNegative == 1 ) {
 		if (Value < 0.0) {
 			flag = 1;
-			return flag;
 		}
 	}
 	if (checkZero == 1) {
 		if (Value == 0.0) {
 			flag = 1;
-			return flag;
 		}
 	}
 	return flag;

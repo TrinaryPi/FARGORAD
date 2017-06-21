@@ -18,7 +18,7 @@ CC_INTEL  = icc
 OPT_INTEL = 
 OPTSEQ_INTEL = -O3  -g -Wall
 PARAOPT_INTEL = -O3 -march=native 
-PARACC_INTEL = OMPI_CC=icc mpicc
+PARACC_INTEL = mpicc
 
 # Opteron platform FARGO_ARCH must be set to OPTERON
 CC_OPTERON = gcc
