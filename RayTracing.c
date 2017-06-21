@@ -121,7 +121,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 {
 	// Declaration
 	FILE	*dump;
-  	char	name[256];
+  char	name[256];
 	int ns, nstar, ncp, n;
 	int i, im, ip, ib;
 	int j, jm, jp;
@@ -166,14 +166,15 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 	/* Allocate memory for global Sigma, Kappa_R, Height, Temperature (four-fields)
 	and Q_irr^RT fields */
+	masterprint("AllocateGlobalFIelds...");
 	if (( CPU_Rank == 0 ) && ( allocated_globalfields == 0 )) {
 		AllocateGlobalFields();
 	}
+	masterprint("done.\n");
 
 	// Constants
 	c1 = 0.5;
 	dth = 2.0*PI/(real)ns;
-
 	first_active = (IMIN + Zero_or_active)*ns;
 	last_active = (IMIN + Max_or_active)*ns - 1;
 	active_size = (last_active - first_active + 1);
@@ -189,21 +190,26 @@ void ComputeBinarySourceRT (gas_density, bsys)
 		displs 		= (int *)malloc(sizeof(int) * CPU_Number);
 		ff_displs 	= (int *)malloc(sizeof(int) * CPU_Number);
 	}
+	masterprint("Gather field sizes to master...");
 	MPI_Gather(&active_size, 1, MPI_INT, sizes, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Gather(&ffas, 1, MPI_INT, ff_sizes, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	masterprint("done.\n");
 
 	/* Allocate memory for four-field send buffer,
 	and copy active zone regions of the fields to this buffer  */
+	masterprint("Create Send_FieldBuffer and copy local fields into it...");
 	Send_FieldBuffer = (real *)malloc((ffas)*sizeof(real));
 	memcpy(&Send_FieldBuffer[0*active_size], &sigma[Zero_or_active*ns], active_size*sizeof(real));
 	memcpy(&Send_FieldBuffer[1*active_size], &rkappa[Zero_or_active*ns], active_size*sizeof(real));
 	memcpy(&Send_FieldBuffer[2*active_size], &height[Zero_or_active*ns], active_size*sizeof(real));
 	memcpy(&Send_FieldBuffer[3*active_size], &temperature[Zero_or_active*ns], active_size*sizeof(real));
+	masterprint("done.\n");
 
 	/* On Master CPU create receive buffer,
 	for cell and grid tau buffers respectively.
 	Then prepare array of start displacement values (stride length)
 	to send correct array portions back to CPUs */
+	masterprint("Create Recv_FieldBuffer and create displacement and stride lengths...");
 	if ( CPU_Rank == 0 ) {
 		Recv_FieldBuffer = (real *)malloc((4*global_real_size));
 		/* Create array of stride lengths */
@@ -214,10 +220,12 @@ void ComputeBinarySourceRT (gas_density, bsys)
 			ff_displs[i] = ff_displs[i-1] + ff_sizes[i-1];
 		}
 	}
+	masterprint("done.\n");
 
 	/* Gather four-field values to buffer
 	on Master CPU. Split fields from buffer into
 	separate Global fields on Master CPU */
+	masterprint("Gather all local fields to global field buffer on master...");
 	MPI_Gatherv(Send_FieldBuffer, ffas, MPI_DOUBLE, Recv_FieldBuffer, ff_sizes, ff_displs, MPI_DOUBLE, 0, MPI_COMM_WORLD );
 	if ( CPU_Rank == 0 ) {
 		for (ncp = 0; ncp < CPU_Number; ncp++) {
@@ -240,7 +248,9 @@ void ComputeBinarySourceRT (gas_density, bsys)
 		free(Recv_FieldBuffer);
 	}
 	free(Send_FieldBuffer);
+	masterprint("Done.\n");
 
+	masterprint("Starting ray-traced heating calculation.\n\n");
 	if ( CPU_Rank == 0 ) {
 		for (i = 0; i < GLOBALNRAD; i++) {
 			for (j = 0; j < GLOBALNRAD; j++) {
@@ -279,7 +289,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 				
 			}
 			// memset(blocked, 0, sizeof(int)*NSEC*GLOBALNRAD);
-			
+			masterprint("Calculating star %d ray-traced heating...", s+1);
 			for (i = 0; i < GLOBALNRAD; i++) {
 				for (j = 0; j < ns; j++) {
 					l = j + i*ns;
@@ -462,6 +472,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
           			Global_qrt[l] /= sigma[l]*CV;
 				}
 			}
+			masterprint("done.\n");
 		}
 		time(&t_end);
 		t_elapsed = difftime(t_end, t_start);
@@ -470,22 +481,29 @@ void ComputeBinarySourceRT (gas_density, bsys)
 		Send_FieldBuffer = (real *)malloc(global_real_size);
 		memcpy(Send_FieldBuffer, Global_qrt, global_real_size);
 	}
+	masterprint("Finished calculating ray-traced heating.\n");
 
 	/* Send grid tau values to Slaves, copy buffer to 
 		 grid tau array */
+	masterprint("Create Recv_FieldBuffer for heating field and scatter global field on master to local cpu fields...\n");
 	Recv_FieldBuffer = (real *)malloc((active_size)*sizeof(real));
 	MPI_Scatterv(Send_FieldBuffer, sizes, displs, MPI_DOUBLE, Recv_FieldBuffer, active_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	memcpy(&QRT[Zero_or_active*ns], Recv_FieldBuffer, active_size*sizeof(real));
 	if ( CPU_Rank == 0 ) {
 		free(Send_FieldBuffer);
 	}
+	masterprint("Done.\n");
+	masterprint("Free allocated memory...\n");
 	free(Recv_FieldBuffer);
 	free(continue_in_i);
 	free(sizes);
 	free(displs);
 	free(ff_displs);
 	free(ff_sizes);
+	masterprint("done.\n");
+	masterprint("Copy field overlap zones to neighbouring processors...");
 	CommunicateFieldBoundaries(QirrRT);
+	masterprint("done.\n");
 
 	// Debug
 	if ( RadiationDebug ) {

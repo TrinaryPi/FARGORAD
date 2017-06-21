@@ -35,7 +35,6 @@ void InitialiseRadiationModule(density, bsys)
 	if ( Irradiation ) {
 		ComputeQirr(density, bsys);
 	}
-	printf("CPU_%d: ComputeRayTracingHeating\n", CPU_Rank);
 	if ( RayTracingHeating ) {
 		ComputeRayTracingHeating(density, bsys);
 	}
