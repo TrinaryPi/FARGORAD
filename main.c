@@ -220,12 +220,8 @@ main(argc, argv)
   }
   ListEOSParams();
 
-  printf("CPU_%d: ListEOSParams\n", CPU_Rank);
-
   /* Only gas velocities remain to be initialized */
   Initialization (gas_density, gas_v_rad, gas_v_theta, gas_energy, gas_label, sys);
-
-  printf("CPU_%d: Initialisation\n", CPU_Rank);
 
   if ( DiscMassTaper ) {
     for (i = 0; i < NRAD; i++) {
@@ -283,6 +279,8 @@ main(argc, argv)
     StarTaper = (STARTAPER > 1.0 ? 0 : 1.0);
     InitialiseRadiationModule (gas_density, bsys);
   }
+
+  printf("CPU_%d: InitialiseRadiationModule\n", CPU_Rank);
 
   PreInitialisation = NO;
 
