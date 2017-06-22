@@ -1,7 +1,6 @@
-
 #include "mp.h"
 
-extern boolean BinaryOn, RayTracingHeating, ExplicitRayTracingHeating, ImplicitRayTracingHeating;
+extern boolean RayTracingHeating, ExplicitRayTracingHeating, ImplicitRayTracingHeating;
 extern real StarTaper;
 extern boolean	BitschSKappa, HubenySKappa, EmptyCavity, RadiationDebug;
 
@@ -161,11 +160,9 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 	/* Allocate memory for global Sigma, Kappa_R, Height, Temperature (four-fields)
 	and Q_irr^RT fields */
-	masterprint("AllocateGlobalFIelds...");
 	if (( CPU_Rank == 0 ) && ( allocated_globalfields == 0 )) {
 		AllocateGlobalFields();
 	}
-	masterprint("done.\n");
 
 	// Constants
 	c1 = 0.5;
@@ -185,26 +182,21 @@ void ComputeBinarySourceRT (gas_density, bsys)
 		displs 		= (int *)malloc(sizeof(int) * CPU_Number);
 		ff_displs 	= (int *)malloc(sizeof(int) * CPU_Number);
 	}
-	masterprint("Gather field sizes to master...");
 	MPI_Gather(&active_size, 1, MPI_INT, sizes, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Gather(&ffas, 1, MPI_INT, ff_sizes, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	masterprint("done.\n");
 
 	/* Allocate memory for four-field send buffer,
 	and copy active zone regions of the fields to this buffer  */
-	masterprint("Create Send_FieldBuffer and copy local fields into it...");
 	Send_FieldBuffer = (real *)malloc((ffas)*sizeof(real));
 	memcpy(&Send_FieldBuffer[0*active_size], &sigma[Zero_or_active*ns], active_size*sizeof(real));
 	memcpy(&Send_FieldBuffer[1*active_size], &rkappa[Zero_or_active*ns], active_size*sizeof(real));
 	memcpy(&Send_FieldBuffer[2*active_size], &height[Zero_or_active*ns], active_size*sizeof(real));
 	memcpy(&Send_FieldBuffer[3*active_size], &temperature[Zero_or_active*ns], active_size*sizeof(real));
-	masterprint("done.\n");
 
 	/* On Master CPU create receive buffer,
 	for cell and grid tau buffers respectively.
 	Then prepare array of start displacement values (stride length)
 	to send correct array portions back to CPUs */
-	masterprint("Create Recv_FieldBuffer and create displacement and stride lengths...");
 	if ( CPU_Rank == 0 ) {
 		Recv_FieldBuffer = (real *)malloc((4*global_real_size));
 		/* Create array of stride lengths */
@@ -215,12 +207,10 @@ void ComputeBinarySourceRT (gas_density, bsys)
 			ff_displs[i] = ff_displs[i-1] + ff_sizes[i-1];
 		}
 	}
-	masterprint("done.\n");
 
 	/* Gather four-field values to buffer
 	on Master CPU. Split fields from buffer into
 	separate Global fields on Master CPU */
-	masterprint("Gather all local fields to global field buffer on master...");
 	MPI_Gatherv(Send_FieldBuffer, ffas, MPI_DOUBLE, Recv_FieldBuffer, ff_sizes, ff_displs, MPI_DOUBLE, 0, MPI_COMM_WORLD );
 	if ( CPU_Rank == 0 ) {
 		for (ncp = 0; ncp < CPU_Number; ncp++) {
@@ -243,19 +233,14 @@ void ComputeBinarySourceRT (gas_density, bsys)
 		free(Recv_FieldBuffer);
 	}
 	free(Send_FieldBuffer);
-	masterprint("Done.\n");
 
-	masterprint("Starting ray-traced heating calculation.\n\n");
-	if ( CPU_Rank == 0 ) {
-		masterprint("Initialising heating field to 0...");
+	if ( CPU_Master ) {
 		for (i = 0; i < GLOBALNRAD; i++) {
 			for (j = 0; j < GLOBALNRAD; j++) {
 				l=j+i*ns;
 				Global_qrt[l] = 0.0;
 			}
 		}
-		masterprint("done.\n");
-		masterprint("Setting field values of cavity material...");
 		if ( EmptyCavity == NO ) {
 			Cavity_sigma = Cavity_rkappa = Cavity_height = Cavity_temperature = 0.0;
 			for (j = 0; j < ns; j ++) {
@@ -274,10 +259,8 @@ void ComputeBinarySourceRT (gas_density, bsys)
 			Cavity_height = 0.0;
 			Cavity_temperature = 0.0;
 		}
-		masterprint("done.\n");
 
 		for (s = 0; s < nstar; s++) {
-			masterprint("Setting up stellar parameters for star %d...", s+1);
 			Tstar[s] =  StarTaper*(IrrSources->Tstar[s]);
 			starcons = STEFANK*pow(Tstar[s]*Tstar[s]*Rstar[s], 2.0);
 			rb = hypot(xb[s], yb[s]);
@@ -285,9 +268,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 			for (j = 0; j < ns; j++) {
 				continue_in_i[j] = 1;
 			}
-			masterprint("done.\n");
-			MPI_Barrier(MPI_COMM_WORLD);
-			masterprint("Calculating star %d ray-traced heating...", s+1);
 			for (i = 0; i < GLOBALNRAD; i++) {
 				for (j = 0; j < ns; j++) {
 					l = j + i*ns;
@@ -420,7 +400,11 @@ void ComputeBinarySourceRT (gas_density, bsys)
 								im = ip - 1;
 								r2r1 = GlobalRmed[ip] - GlobalRmed[im];
 								r2r = (GlobalRmed[ip] - ray->r)/r2r1;
-								rr1 = (ray->r - GlobalRmed[im])/r2r1;
+								if ( ray->r < GlobalRmed[0] ) {
+									rr1 = (ray->r - RMIN)/r2r1;
+								} else {
+									rr1 = (ray->r - GlobalRmed[im])/r2r1;
+								}
 							}
 							ib = ip;
 
@@ -442,15 +426,16 @@ void ComputeBinarySourceRT (gas_density, bsys)
 							Ray_height = th2th*(r2r*Global_height[lijm] + rr1*Global_height[lip]) + thth1*(r2r*Global_height[ljp] + rr1*Global_height[lijp]);
 							Ray_temperature = th2th*(r2r*Global_temperature[lijm] + rr1*Global_temperature[lip]) + thth1*(r2r*Global_temperature[ljp] + rr1*Global_temperature[lijp]);
 
-							if (( Ray_sigma <= 0 ) || ( Ray_height <= 0 ) || ( Ray_temperature <= 0 ) || ( Ray_rkappa <= 0 )) {
-								if (( i != 0 ) && (EmptyCavity != 0)){
-									masterprint("Negative/zero interpolated values @ i = %d, j = %d, s = %d\n", i, j, s);
-									prs_exit(1);
+							if (( Ray_sigma < 0.0 ) || ( Ray_height < 0.0 ) || ( Ray_temperature < 0.0 ) || ( Ray_rkappa < 0.0 )) {
+								if (( i != 0 ) && ( EmptyCavity )) {
+									masterprint("Negative interpolated values @ i = %d, j = %d, s = %d\n", i, j, s);
+									MPI_Abort(MPI_COMM_WORLD, 1);
+									MPI_Finalize();
 								}
 							}
 						}
 
-						if (( Ray_sigma == 0 ) || ( Ray_height == 0 ) || ( Ray_temperature == 0 ) || ( Ray_rkappa == 0 )) {
+						if (( Ray_sigma == 0.0 ) || ( Ray_height == 0.0 ) || ( Ray_temperature == 0.0 ) || ( Ray_rkappa == 0.0 )) {
 							ray->dtau = 0.0;
 						} else {
 							rho = c1*Ray_sigma/Ray_height;
@@ -464,43 +449,42 @@ void ComputeBinarySourceRT (gas_density, bsys)
 					}
 
 					term = ComputeQRT(starcons, ray->length, ray->tau, ray->dtau, ray->dr, ray->env);
-          Global_qrt[l] += term;
-          Global_qrt[l] /= sigma[l]*CV;
+          Global_qrt[l] = Global_qrt[l]+term;
 				}
 			}
-			masterprint("done.\n");
+		}
+		for (i = 0; i < GLOBALNRAD; i++) {
+			for (j = 0; j < ns; j++) {
+				l = j+i*ns;
+				if ( Global_qrt[l] != 0.0 ) {
+					Global_qrt[l] = Global_qrt[l]/(CV*sigma[l]);
+				}
+			}
 		}
 		Send_FieldBuffer = (real *)malloc(global_real_size);
 		memcpy(Send_FieldBuffer, Global_qrt, global_real_size);
 	}
-	masterprint("Finished calculating ray-traced heating.\n");
 
 	/* Send grid tau values to Slaves, copy buffer to 
 		 grid tau array */
-	masterprint("Create Recv_FieldBuffer for heating field and scatter global field on master to local cpu fields...\n");
 	Recv_FieldBuffer = (real *)malloc((active_size)*sizeof(real));
 	MPI_Scatterv(Send_FieldBuffer, sizes, displs, MPI_DOUBLE, Recv_FieldBuffer, active_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	memcpy(&QRT[Zero_or_active*ns], Recv_FieldBuffer, active_size*sizeof(real));
 	if ( CPU_Rank == 0 ) {
 		free(Send_FieldBuffer);
 	}
-	masterprint("Done.\n");
-	masterprint("Free allocated memory...\n");
 	free(Recv_FieldBuffer);
 	free(continue_in_i);
 	free(sizes);
 	free(displs);
 	free(ff_displs);
 	free(ff_sizes);
-	masterprint("done.\n");
-	masterprint("Copy field overlap zones to neighbouring processors...");
 	CommunicateFieldBoundaries(QirrRT);
-	masterprint("done.\n");
 
 	// Debug
 	if ( RadiationDebug ) {
 		int check_neg = 1;
-    	int check_zero = 0;
+    int check_zero = 0;
 		CheckField(QirrRT, check_neg, check_zero, "ComputeBinarySourceRT");
 	}
 }
