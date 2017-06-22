@@ -40,7 +40,7 @@ void ReadfromFile (array, fileprefix, filenumber)
   fclose (input);
   /* Next CPU is waiting. Tell it to start now by sending the message
      that it expects */
-  if (CPU_Rank < CPU_Highest) MPI_Send (&foo, 1, MPI_INT, CPU_Next, 10, MPI_COMM_WORLD);
+  if (CPU_Rank < CPU_Highest) MPI_Send(&foo, 1, MPI_INT, CPU_Next, 10, MPI_COMM_WORLD);
   MPI_Barrier (MPI_COMM_WORLD);	/* previous CPUs do not touch anything meanwhile */
 }
 

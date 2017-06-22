@@ -145,9 +145,13 @@ void DumpSources (argc, argv)
   char filecom[1024];
   int i;
   FILE *COM;
+  int systemret;
   if (!CPU_Master) return;
   sprintf (CommandLine, "cp source.tar.bz2 %ssrc.tar.bz2", OUTPUTDIR);
-  system (CommandLine);
+  systemret = system(CommandLine);
+  if ( systemret == -1 ) {
+    mastererr ("Failed to copy source files to output directory.\n");
+  }
   sprintf (filecom, "%srun.commandline", OUTPUTDIR);
   COM = fopen (filecom, "w");
   if (COM == NULL) {

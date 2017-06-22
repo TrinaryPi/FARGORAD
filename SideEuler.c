@@ -246,12 +246,11 @@ void OpenBoundary (Vrad, Rho, Energy)
 void ViscousInnerBoundary (Vrad, Rho, Energy)
      PolarGrid *Vrad, *Rho, *Energy;
 {
-  int i,j,l,ns,nr;
+  int i,j,l,ns;
   real *rho, *vr, *energy;
   real viscosity, velvisc;
   if (CPU_Rank != 0) return;
   ns = Rho->Nsec;
-  nr = Rho->Nrad;
   rho = Rho->Field;
   vr  = Vrad->Field;
   energy = Energy->Field;
@@ -305,11 +304,10 @@ void OpenOuterBoundary (Vrad, Rho, Energy)
 void ClosedBoundary (Vrad, Rho, Energy)
      PolarGrid *Vrad, *Rho, *Energy;
 {
-  int i,j,l,ns,nr;
+  int i,j,l,ns;
   real *rho, *vr, *energy;
   if (CPU_Rank != 0) return;
   ns = Rho->Nsec;
-  nr = Rho->Nrad;
   rho = Rho->Field;
   vr  = Vrad->Field;
   energy = Energy->Field;
@@ -499,7 +497,7 @@ void EvanescentInnerBoundary (Vrad, Vtheta, Rho, Energy, step)
      PolarGrid *Vrad, *Vtheta, *Rho, *Energy;
      real step;
 {
-  int i, j, l, nr, ns;
+  int i, j, l, ns;
   real *vrad, *vtheta, *dens, *energ;
   real vrad0, vtheta0, viscosity, dens0, energ0;
   real DRMIN, damping, Tin, lambda;
@@ -507,7 +505,6 @@ void EvanescentInnerBoundary (Vrad, Vtheta, Rho, Energy, step)
   vtheta = Vtheta->Field;
   dens = Rho->Field;
   energ = Energy->Field;
-  nr = Rho->Nrad;
   ns = Rho->Nsec;
   /* Orbital period at inner and outer boundary */
   Tin = 2.0*PI*pow(GlobalRmed[0],3./2);
@@ -561,7 +558,7 @@ void EvanescentOuterBoundary (Vrad, Vtheta, Rho, Energy, step)
      PolarGrid *Vrad, *Vtheta, *Rho, *Energy;
      real step;
 {
-  int i, j, l, nr, ns;
+  int i, j, l, ns;
   real *vrad, *vtheta, *dens, *energ;
   real vrad0, vtheta0, viscosity, dens0, energ0;
   real DRMAX, damping, Tout, lambda;
@@ -569,7 +566,6 @@ void EvanescentOuterBoundary (Vrad, Vtheta, Rho, Energy, step)
   vtheta = Vtheta->Field;
   dens = Rho->Field;
   energ = Energy->Field;
-  nr = Rho->Nrad;
   ns = Rho->Nsec;
   /* Orbital period outer boundary */
   Tout = 2.0*PI*pow(GlobalRmed[GLOBALNRAD-1],3./2);

@@ -30,7 +30,7 @@ real SigmaSafetyFloor = 1.0E-10, EnergySafetyFloor;
 extern boolean VarDiscHeight, RadCooling, Irradiation, RadTransport, TempInit;
 extern boolean NoCFL, RadiativeOnly;
 extern boolean RayTracingHeating, ExplicitRayTracingHeating, ImplicitRadiative;
-static int crash_i, crash_j, output_counter = 0;
+static int crash_i, crash_j;
 static real dt_hydro_av = 0.0, dt_energy_av = 0.0;
 static int nsteps_av = 0;
 extern boolean  AnalyticCooling;
@@ -1280,24 +1280,24 @@ real EnergyConditionCFL(Energy)
   PolarGrid *Energy;
 {
   // Declaration
-  int i, j, l, nr, ns, ideb = 0, jdeb = 0, l_deb;
-  real *energy, *qplus, *qminus, *qirr, *pressure, *divergence;
-  real dedt_abs, dedt, new_dt = 1.0E30, old_dt, factor, dedt_deb, energy_deb;
+  int i, j, l, nr, ns;
+  real *energy, *qplus, *qirr, *pressure, *divergence;
+  real dedt_abs, dedt, new_dt = 1.0E30, old_dt, factor;
 
   // Assignment
   nr = Energy->Nrad;
   ns = Energy->Nsec;
   energy = Energy->Field;
-  if ( Irradiation )
+  if ( Irradiation ) {
     qirr = Qirr->Field;
-  if ( RadCooling )
-    qminus = Qminus->Field;
+  }
   if ( HydroOn ) {
     divergence = DivergenceVelocity->Field;
     pressure = Pressure->Field;
   }
-  if ( !RadiativeOnly )
+  if ( !RadiativeOnly ) {
     qplus = Qplus->Field;
+  }
 
   // Constants
   factor = 2.0;
@@ -1325,21 +1325,10 @@ real EnergyConditionCFL(Energy)
       old_dt = energy[l]/dedt_abs;
       old_dt /= factor;
       if ( old_dt < new_dt ) {
-        ideb = i;
-        jdeb = j;
-        dedt_deb = dedt_abs;
-        energy_deb = energy[l];
         new_dt = old_dt;
       }
     }
   }
-
-  l_deb = jdeb+ideb*ns;
-  // if ( CPU_Master ) {
-  //   printf("CPU_%d: ideb = %d, jdeb = %d\n", CPU_Rank, ideb, jdeb);
-  //   printf("CPU_%d: dedt = %g, energy = %g, ratio = %f\n",CPU_Rank, dedt_deb, energy_deb, energy_deb/dedt_deb);
-  //   printf("CPU_%d: T^4 = %g, taueff = %g, tau = %g, T_eff^4 = %g\n", CPU_Rank, pow(Temperature->Field[l_deb], 4.0), OpticalDepthEff->Field[l_deb], OpticalDepth->Field[l_deb], pow(Temperature->Field[l_deb], 4.0)/OpticalDepthEff->Field[l_deb]);
-  // }
   
   // Output
   return new_dt;
@@ -1350,9 +1339,9 @@ real RadCoolConditionCFL(Energy)
   PolarGrid *Energy;
 {
   // Declaration
-  int i, j, l, nr, ns, ideb = 0, jdeb = 0, l_deb;
+  int i, j, l, nr, ns;
   real *energy, *qminus;
-  real dedt_abs, new_dt = 1.0E30, old_dt, factor, dedt_deb, energy_deb;
+  real dedt_abs, new_dt=1.0E30, old_dt, factor;
 
   // Assignment
   nr = Energy->Nrad;
@@ -1372,15 +1361,10 @@ real RadCoolConditionCFL(Energy)
       old_dt = energy[l]/dedt_abs;
       old_dt /= factor;
       if ( old_dt < new_dt ) {
-        ideb = i;
-        jdeb = j;
-        dedt_deb = dedt_abs;
-        energy_deb = energy[l];
         new_dt = old_dt;
       }
     }
   }
-  l_deb = jdeb+ideb*ns;
   
   // Output
   return new_dt;
@@ -1425,13 +1409,10 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
   // Declaration
   int i, j, l, nr, ns, nstep;
   real *density, *energy, *temperature, *qminus, *taueff;
-  real dt_remainder = 0.0, dt;
+  real dt_remainder=0.0, dt;
   real *densitycv;
   real constant1;
-  int ideb, jdeb;
-  real taueffmin = 1.0E30;
   real term1, term2;
-  clock_t start, diff;
 
   // Assignment
   nr = Rho->Nrad;
@@ -1447,7 +1428,6 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
   constant1 = 2.0*STEFANK;
 
   // Function
-  start = clock();
   /* Convert energy density to temperature */
 #pragma omp parallel for private(j, l)
   for (i = 0; i < nr; i++) {
@@ -1458,6 +1438,7 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
     }
   }
 
+  /* Evolve temperature field with analytical cooling term */
   if ( AnalyticCooling ) {
     for (i = 0; i < nr; i++) {
       for (j = 0; j < ns; j++) {
@@ -1485,13 +1466,6 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
     /* Carry out RadCoolTimeStepsCFL sub-cycles, with timestep dt */
     for (nstep = 0; nstep < RadCoolTimeStepsCFL; nstep++) {
   #pragma omp parallel for private(j, l)
-      // for (i = 0; i < nr; i++) {
-      //   for (j = 0; j < ns; j++) {
-      //     l = j+i*ns;
-      //     temperature[l] -= dt*qminus[l]/densitycv[l];
-      //     qminus[l] = constant1*pow(temperature[l], 4.0)/taueff[l];
-      //   }
-      // }
       /* Evolve temperature field with local radiative cooling */
       for (i = 0; i < nr; i++) {
         for (j = 0; j < ns; j++) {
@@ -1507,19 +1481,6 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
       ComputeQminus(Rho);
     }
 
-    for (i = 0; i < nr; i++) {
-      for (j = 0; j < ns; j++) {
-        l = j + i*ns;
-        if (taueff[l] < taueffmin) {
-          ideb = i;
-          jdeb = j;
-          taueffmin = taueff[l];
-        }
-      }
-    }
-
-    MPI_Allreduce(&taueffmin, &taueffmin, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-
     /* Update temperature to time level n+1 with last dt_remainder timestep */
     if ( dt_remainder > 0.0 ) {
   #pragma omp parallel for private(j, l)
@@ -1530,15 +1491,8 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
         }
       }
     }
-
-    /* Convert temperature back to energy density */
-  
-    diff = clock() - start;
-    int msec = diff * 1000 / CLOCKS_PER_SEC;
-    MPI_Allreduce(&msec, &msec, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    masterprint("Elapsed time for %d sub-cycles: %d milliseconds. dt = %g. Minimum tau_eff = %g \n", RadCoolTimeStepsCFL, (msec%1000)/CPU_Number, dt*(real)RadCoolTimeStepsCFL, taueffmin);
   }
-
+  /* Convert temperature back to energy density */
   for (i = 0; i < nr; i++) {
     for (j = 0; j < ns; j++) {
       l = j+i*ns;

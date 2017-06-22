@@ -15,8 +15,8 @@ PARACC_LINUX = mpicc
 #accordingly) FARGO_ARCH must be set to INTEL (sequential only, MPI
 #identical to generic IA32)
 CC_INTEL  = icc
-OPT_INTEL = 
-OPTSEQ_INTEL = -O3  -g -Wall
+OPT_INTEL = -O3  -g -Wall -Wno-unused-result -Wno-unknown-pragmas
+OPTSEQ_INTEL =
 PARAOPT_INTEL = -O3 -march=native 
 PARACC_INTEL = mpicc
 
@@ -70,7 +70,7 @@ PARACC_SPARC = mpicc
 # Setup for AMD cifib apocrita nodes with PGI compiler, FARGO_ARCH must be set to 
 # PGI
 CC_PGI  = pgcc
-OPT_PGI = -fast -O3
+OPT_PGI = -fast -O3 -Werror -Wall
 OPTSEQ_PGI = 
 PARAOPT_PGI =
 PARACC_PGI = mpicc

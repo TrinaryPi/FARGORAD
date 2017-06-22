@@ -26,7 +26,7 @@ OpacTable *CreateOpacTable ()
 	// Declaration
 	OpacTable 	*array;
 	int 				ni, i;
-	real 				*kappa0, *alpha, *beta, *tempmin, *tempmax, *constant, *exponent;
+	real 				*kappa0, *alpha, *beta, *tempmax, *constant, *exponent;
 
 	// Constants
 	if ( LinPap1985_Opacity ) {
@@ -46,15 +46,13 @@ OpacTable *CreateOpacTable ()
 	kappa0 		= (real *) malloc(sizeof(real) * (ni+1));
 	alpha 		= (real *) malloc(sizeof(real) * (ni+1));
 	beta 			= (real *) malloc(sizeof(real) * (ni+1));
-	tempmin 	= (real *) malloc(sizeof(real) * (ni+1));
 	tempmax 	= (real *) malloc(sizeof(real) * (ni+1));
 	constant 	= (real *) malloc(sizeof(real) * (ni+1));
 	exponent 	= (real *) malloc(sizeof(real) * (ni+1));
 
 	if (( kappa0 == NULL ) || ( alpha == NULL ) ||\
-		( beta == NULL ) || ( tempmin == NULL ) ||\
-		( tempmax == NULL ) || ( constant == NULL ) ||\
-		( exponent == NULL )) {
+		( beta == NULL ) || ( tempmax == NULL ) ||\
+		( constant == NULL ) || ( exponent == NULL )) {
 		fprintf (stderr, "Not enough memory.\n");
 		fprintf (stderr, "Please provide more memory if this is what you require!\n");
 	}
@@ -62,12 +60,11 @@ OpacTable *CreateOpacTable ()
 	array->Kappa0		= kappa0;
 	array->Alpha		= alpha;
 	array->Beta			= beta;
-	array->Tmin			= tempmin;
 	array->Tmax			= tempmax;
 	array->Constant	= constant;
 	array->Exponent	= exponent;
 	for (i = 0; i < ni; i++) {
- 		kappa0[i] = alpha[i] = beta[i] = tempmin[i] = tempmax[i] = constant[i] = exponent[i] = 0.0;
+ 		kappa0[i] = alpha[i] = beta[i] = tempmax[i] = constant[i] = exponent[i] = 0.0;
 	}
 
  	// Output
@@ -80,14 +77,13 @@ OpacTable *InitOpacTable ()
 	// Declaration
 	int 	i, ni;
 	real 	ap, bp;
-	real 	*kappa0, *alpha, *beta, *tmin, *tmax, *constant, *exponent;
+	real 	*kappa0, *alpha, *beta, *tmax, *constant, *exponent;
 
 	// Assignment
 	ni 			= RKappa->Ni;
 	kappa0 		= RKappa->Kappa0;
 	alpha 		= RKappa->Alpha;
 	beta 		= RKappa->Beta;
-	tmin 		= RKappa->Tmin;
 	tmax 		= RKappa->Tmax;
 	constant 	= RKappa->Constant;
 	exponent 	= RKappa->Exponent;
@@ -258,7 +254,7 @@ real CoolingRegime (rho, T)
 {
 	// Declaration
 	int i, max_i;
-	real *kappa0, *alpha, *beta, *cons, *expn, *tmin;
+	real *kappa0, *alpha, *beta, *cons, *expn;
 	real  kappacgs, tmax_max, tmax;
 
 	// Assignment
@@ -268,7 +264,6 @@ real CoolingRegime (rho, T)
 	beta = RKappa->Beta;
 	cons = RKappa->Constant;
 	expn = RKappa->Exponent;
-	tmin = RKappa->Tmin;
 
 	// Function
 	if ( OpacitySmoothing ) {

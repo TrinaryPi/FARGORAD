@@ -1,17 +1,17 @@
 #include "mp.h"
 
-boolean         TimeToWrite, Restart = NO, OpenInner = NO, BinaryOn = NO, DiscElem = NO;
+boolean         TimeToWrite, Restart=NO, OpenInner=NO, BinaryOn=NO, DiscElem=NO, RadiationDebug=NO, PreInitialisation;
 int             TimeStep = 0, begin_i = 0, NbRestart = 0, verbose = NO;
 int             dimfxy = 11;
 static int      InnerOutputCounter=0, StillWriteOneOutput;
-extern real     LostMass, mlinner=0.0, mlouter=0.0;
+extern real     LostMass;
 extern boolean  Corotating;
 extern boolean  SelfGravity, SGZeroMode, Adiabatic, DiscMassTaper;
 real            ScalingFactor = 1.0;
 real            Abinary;
 Pair            bin_acc, acc_rate;
 extern boolean  RadCooling, Irradiation, RadTransport, RayTracingHeating;
-extern boolean  TempInit, RadiationDebug=NO, PreInitialisation;
+extern boolean  TempInit;
 
 int
 main(argc, argv)
@@ -37,6 +37,8 @@ main(argc, argv)
   Force *force;
   int FirstRestartOutput = 0;
   PreInitialisation = YES;
+  mlinner = 0.0;
+  mlouter = 0.0;
   
   MPI_Init (&argc, &argv);
   MPI_Comm_rank (MPI_COMM_WORLD, &CPU_Rank);

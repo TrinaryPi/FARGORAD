@@ -15,7 +15,7 @@ extern boolean	PowerLaw_Opacity;
 extern boolean	OpacitySmoothing;
 extern boolean	ExplicitRadTransport;
 static real NormAv = 0;
-static int IterAv = 0, counter = 1, counter2 = 1;
+static int IterAv = 0, counter = 1;
 static int toggle_qirrrt = 0;
 
 void ComputeDiscHeight (bsys)
@@ -217,10 +217,8 @@ void ComputeQirr (Sigma, bsys)
 	Tstar = IrrSources->Tstar;
 	central_source = IrrSources->CentralSource;
 	qirr = Qirr->Field;
-	if ( nb > 1 ) {
-		xs = bsys->x;
-		ys = bsys->y;
-	}
+	xs = bsys->x;
+	ys = bsys->y;
 	tau = OpticalDepth->Field;
 	taueff = OpticalDepthEff->Field;
 
@@ -606,8 +604,6 @@ void ComputeRadTransCoeffs(gas_density, dt)
 	real elim, elip, eljm, eljp, el, rho;
 	real grad1, grad2, grad;
 	real Dip, Dim, Djm, Djp;
-	real gij, gj, gip, gim;
-	real dr1, dr2;
 	real cvfac, c1;
 
   // Assignment
@@ -694,7 +690,6 @@ void ComputeRadTransCoeffs(gas_density, dt)
  	for (i = One_or_active; i < MaxMO_or_active; i++) {
  		im = i - 1;
  		ip = i + 1;
- 		gj = 2.0*Rmed[i]*DTHETA*DTHETA;
  		for (j = 0; j < ns; j++) {
  			l = j+i*ns;
 			lim = j+im*ns;
@@ -956,19 +951,12 @@ real FLDConditionCFL()
 	// Input N/A
 {
 	// Declaration
-	int i, j, l, nr, ns;
-	real *U1, *U2, *U3, *U4, *B, *T, *D;
+	int i, j, l, ns;
+	real *D;
 	real old_dt, new_dt = 1.0E30, factor;
 
 	// Assignment
-	nr = Temperature->Nrad;
-	ns = Temperature->Nsec;
-	T  = Temperature->Field;
-	U1 = U1arr->Field;
-	U2 = U2arr->Field;
-	U3 = U3arr->Field;
-	U4 = U4arr->Field;
-	B  = Barr->Field;
+	ns = Darr->Nsec;
 	D  = Darr->Field;
 
 	// Constants
@@ -982,7 +970,6 @@ real FLDConditionCFL()
 			if ( old_dt < new_dt ) {
 				new_dt = old_dt;
 			}
-
 			old_dt = factor*Rmed[i]*Rmed[i]*DTHETA*DTHETA/D[l];
 			if ( old_dt < new_dt ) {
 				new_dt = old_dt;

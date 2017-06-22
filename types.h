@@ -125,7 +125,6 @@ struct rad_kappa {
   real *Kappa0;
   real *Alpha;
   real *Beta;
-  real *Tmin;
   real *Tmax;
   real *Constant;
   real *Exponent;

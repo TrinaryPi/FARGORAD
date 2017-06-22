@@ -120,7 +120,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	BinarySystem *bsys;
 {
 	// Declaration
-	int ns, nstar, ncp, n;
+	int ns, nstar, ncp;
 	int i, im, ip, ib;
 	int j, jm, jp;
 	int l, lijm, lijp, lip, ljp;
