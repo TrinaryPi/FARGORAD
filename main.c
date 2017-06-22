@@ -282,8 +282,6 @@ main(argc, argv)
     InitialiseRadiationModule (gas_density, bsys);
   }
 
-  printf("CPU_%d: InitialiseRadiationModule\n", CPU_Rank);
-
   PreInitialisation = NO;
 
   for (i = begin_i; i <= NTOT; i++) {
