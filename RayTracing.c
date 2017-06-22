@@ -252,14 +252,16 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 	masterprint("Starting ray-traced heating calculation.\n\n");
 	if ( CPU_Rank == 0 ) {
+		masterprint("Initialising heating field to 0...");
 		for (i = 0; i < GLOBALNRAD; i++) {
 			for (j = 0; j < GLOBALNRAD; j++) {
 				l=j+i*ns;
 				Global_qrt[l] = 0.0;
 			}
 		}
+		masterprint("done.\n");
 		// memset(Global_qrt, 0.0, global_real_size);
-		
+		masterprint("Setting field values of cavity material...");
 		if ( EmptyCavity == NO ) {
 			Cavity_sigma = Cavity_rkappa = Cavity_height = Cavity_temperature = 0.0;
 			for (j = 0; j < ns; j ++) {
@@ -278,16 +280,18 @@ void ComputeBinarySourceRT (gas_density, bsys)
 			Cavity_height = 0.0;
 			Cavity_temperature = 0.0;
 		}
+		masterprint("done.\n");
 
 		for (s = 0; s < nstar; s++) {
+			masterprint("Setting up stellar parameters for stat %d...", s+1);
 			Tstar[s] =  StarTaper*(IrrSources->Tstar[s]);
 			starcons = STEFANK*pow(Tstar[s]*Tstar[s]*Rstar[s], 2.0);
 			rb = hypot(xb[s], yb[s]);
 
 			for (j = 0; j < ns; j++) {
 				continue_in_i[j] = 1;
-				
 			}
+			masterprint("done.\n");
 			// memset(blocked, 0, sizeof(int)*NSEC*GLOBALNRAD);
 			masterprint("Calculating star %d ray-traced heating...", s+1);
 			for (i = 0; i < GLOBALNRAD; i++) {
