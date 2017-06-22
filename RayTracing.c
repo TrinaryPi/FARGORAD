@@ -120,8 +120,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	BinarySystem *bsys;
 {
 	// Declaration
-	FILE	*dump;
-  char	name[256];
 	int ns, nstar, ncp, n;
 	int i, im, ip, ib;
 	int j, jm, jp;
@@ -147,9 +145,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	real ratio_xy, denom, dx, dy, dray;
 	real r2r, rr1, r2r1, th2th, thth1;
 	real skappa, term;
-	real t_elapsed;
-	time_t t_start, t_end;
-
 
 	// Assignment
 	ns 			= gas_density->Nsec;
@@ -260,7 +255,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 			}
 		}
 		masterprint("done.\n");
-		// memset(Global_qrt, 0.0, global_real_size);
 		masterprint("Setting field values of cavity material...");
 		if ( EmptyCavity == NO ) {
 			Cavity_sigma = Cavity_rkappa = Cavity_height = Cavity_temperature = 0.0;
@@ -283,7 +277,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 		masterprint("done.\n");
 
 		for (s = 0; s < nstar; s++) {
-			masterprint("Setting up stellar parameters for stat %d...", s+1);
+			masterprint("Setting up stellar parameters for star %d...", s+1);
 			Tstar[s] =  StarTaper*(IrrSources->Tstar[s]);
 			starcons = STEFANK*pow(Tstar[s]*Tstar[s]*Rstar[s], 2.0);
 			rb = hypot(xb[s], yb[s]);
@@ -292,7 +286,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 				continue_in_i[j] = 1;
 			}
 			masterprint("done.\n");
-			// memset(blocked, 0, sizeof(int)*NSEC*GLOBALNRAD);
+			MPI_Barrier(MPI_COMM_WORLD);
 			masterprint("Calculating star %d ray-traced heating...", s+1);
 			for (i = 0; i < GLOBALNRAD; i++) {
 				for (j = 0; j < ns; j++) {
@@ -319,7 +313,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 					ray->separation = hypot(diff_x, diff_y);
 
 					ib = 0;
-					n = 0;
 					while ( rb > GlobalRmed[ib] ) {
 				    	ib = ib + 1;
 					}
@@ -370,7 +363,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 						/* use dx and dy and advance ray in direction */
 						IterateRay(dx, dy, dray, xi, yi);
-						n++;
 						if (( ray->length > ray->separation ) && ( ray->env != 0 )) {
 							masterprint("Ray length greater than source->target cell separation. Exiting\n");
 							prs_exit();
@@ -472,16 +464,12 @@ void ComputeBinarySourceRT (gas_density, bsys)
 					}
 
 					term = ComputeQRT(starcons, ray->length, ray->tau, ray->dtau, ray->dr, ray->env);
-          			Global_qrt[l] += term;
-          			Global_qrt[l] /= sigma[l]*CV;
+          Global_qrt[l] += term;
+          Global_qrt[l] /= sigma[l]*CV;
 				}
 			}
 			masterprint("done.\n");
 		}
-		time(&t_end);
-		t_elapsed = difftime(t_end, t_start);
-		// printf("Two-source ray-traced irradiative heating calculation took %f seconds\n", t_elapsed);
-
 		Send_FieldBuffer = (real *)malloc(global_real_size);
 		memcpy(Send_FieldBuffer, Global_qrt, global_real_size);
 	}
