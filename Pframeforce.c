@@ -357,7 +357,7 @@ void InitGasDensity (Rho)
      PolarGrid *Rho;
 {
   int i, j, l, nr, ns;
-  real *dens, *Dens;
+  real *dens;
 
   dens = Rho->Field;
   nr = Rho->Nrad;
