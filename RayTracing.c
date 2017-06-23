@@ -1,7 +1,6 @@
-
 #include "mp.h"
 
-extern boolean BinaryOn, RayTracingHeating, ExplicitRayTracingHeating, ImplicitRayTracingHeating;
+extern boolean RayTracingHeating, ExplicitRayTracingHeating, ImplicitRayTracingHeating;
 extern real StarTaper;
 extern boolean	BitschSKappa, HubenySKappa, EmptyCavity, RadiationDebug;
 
@@ -107,7 +106,7 @@ void ComputeRayTracingHeating (gas_density, bsys)
 	nstar = IrrSources->nb;
 
 	//Function
-	if (( nstar == 1 ) || ( BinaryOn == NO )) {
+	if ( nstar == 1 ) {
 		ComputeSingleSourceRT(gas_density);
 	} else {
 		ComputeBinarySourceRT(gas_density, bsys);
@@ -120,9 +119,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	BinarySystem *bsys;
 {
 	// Declaration
-	FILE	*dump;
-  	char	name[256];
-	int ns, nstar, ncp, n;
+	int ns, nstar, ncp;
 	int i, im, ip, ib;
 	int j, jm, jp;
 	int l, lijm, lijp, lip, ljp;
@@ -147,9 +144,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	real ratio_xy, denom, dx, dy, dray;
 	real r2r, rr1, r2r1, th2th, thth1;
 	real skappa, term;
-	real t_elapsed;
-	time_t t_start, t_end;
-
 
 	// Assignment
 	ns 			= gas_density->Nsec;
@@ -173,7 +167,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	// Constants
 	c1 = 0.5;
 	dth = 2.0*PI/(real)ns;
-
 	first_active = (IMIN + Zero_or_active)*ns;
 	last_active = (IMIN + Max_or_active)*ns - 1;
 	active_size = (last_active - first_active + 1);
@@ -241,15 +234,13 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	}
 	free(Send_FieldBuffer);
 
-	if ( CPU_Rank == 0 ) {
+	if ( CPU_Master ) {
 		for (i = 0; i < GLOBALNRAD; i++) {
 			for (j = 0; j < GLOBALNRAD; j++) {
 				l=j+i*ns;
 				Global_qrt[l] = 0.0;
 			}
 		}
-		// memset(Global_qrt, 0.0, global_real_size);
-		
 		if ( EmptyCavity == NO ) {
 			Cavity_sigma = Cavity_rkappa = Cavity_height = Cavity_temperature = 0.0;
 			for (j = 0; j < ns; j ++) {
@@ -276,10 +267,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 			for (j = 0; j < ns; j++) {
 				continue_in_i[j] = 1;
-				
 			}
-			// memset(blocked, 0, sizeof(int)*NSEC*GLOBALNRAD);
-			
 			for (i = 0; i < GLOBALNRAD; i++) {
 				for (j = 0; j < ns; j++) {
 					l = j + i*ns;
@@ -305,7 +293,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 					ray->separation = hypot(diff_x, diff_y);
 
 					ib = 0;
-					n = 0;
 					while ( rb > GlobalRmed[ib] ) {
 				    	ib = ib + 1;
 					}
@@ -356,7 +343,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 						/* use dx and dy and advance ray in direction */
 						IterateRay(dx, dy, dray, xi, yi);
-						n++;
 						if (( ray->length > ray->separation ) && ( ray->env != 0 )) {
 							masterprint("Ray length greater than source->target cell separation. Exiting\n");
 							prs_exit();
@@ -414,7 +400,11 @@ void ComputeBinarySourceRT (gas_density, bsys)
 								im = ip - 1;
 								r2r1 = GlobalRmed[ip] - GlobalRmed[im];
 								r2r = (GlobalRmed[ip] - ray->r)/r2r1;
-								rr1 = (ray->r - GlobalRmed[im])/r2r1;
+								if ( ray->r < GlobalRmed[0] ) {
+									rr1 = (ray->r - RMIN)/r2r1;
+								} else {
+									rr1 = (ray->r - GlobalRmed[im])/r2r1;
+								}
 							}
 							ib = ip;
 
@@ -436,15 +426,16 @@ void ComputeBinarySourceRT (gas_density, bsys)
 							Ray_height = th2th*(r2r*Global_height[lijm] + rr1*Global_height[lip]) + thth1*(r2r*Global_height[ljp] + rr1*Global_height[lijp]);
 							Ray_temperature = th2th*(r2r*Global_temperature[lijm] + rr1*Global_temperature[lip]) + thth1*(r2r*Global_temperature[ljp] + rr1*Global_temperature[lijp]);
 
-							if (( Ray_sigma <= 0 ) || ( Ray_height <= 0 ) || ( Ray_temperature <= 0 ) || ( Ray_rkappa <= 0 )) {
-								if (( i != 0 ) && (EmptyCavity != 0)){
-									masterprint("Negative/zero interpolated values @ i = %d, j = %d, s = %d\n", i, j, s);
-									prs_exit(1);
+							if (( Ray_sigma < 0.0 ) || ( Ray_height < 0.0 ) || ( Ray_temperature < 0.0 ) || ( Ray_rkappa < 0.0 )) {
+								if (( i != 0 ) && ( EmptyCavity )) {
+									masterprint("Negative interpolated values @ i = %d, j = %d, s = %d\n", i, j, s);
+									MPI_Abort(MPI_COMM_WORLD, 1);
+									MPI_Finalize();
 								}
 							}
 						}
 
-						if (( Ray_sigma == 0 ) || ( Ray_height == 0 ) || ( Ray_temperature == 0 ) || ( Ray_rkappa == 0 )) {
+						if (( Ray_sigma == 0.0 ) || ( Ray_height == 0.0 ) || ( Ray_temperature == 0.0 ) || ( Ray_rkappa == 0.0 )) {
 							ray->dtau = 0.0;
 						} else {
 							rho = c1*Ray_sigma/Ray_height;
@@ -458,15 +449,18 @@ void ComputeBinarySourceRT (gas_density, bsys)
 					}
 
 					term = ComputeQRT(starcons, ray->length, ray->tau, ray->dtau, ray->dr, ray->env);
-          			Global_qrt[l] += term;
-          			Global_qrt[l] /= sigma[l]*CV;
+          Global_qrt[l] = Global_qrt[l]+term;
 				}
 			}
 		}
-		time(&t_end);
-		t_elapsed = difftime(t_end, t_start);
-		// printf("Two-source ray-traced irradiative heating calculation took %f seconds\n", t_elapsed);
-
+		for (i = 0; i < GLOBALNRAD; i++) {
+			for (j = 0; j < ns; j++) {
+				l = j+i*ns;
+				if ( Global_qrt[l] != 0.0 ) {
+					Global_qrt[l] = Global_qrt[l]/(CV*sigma[l]);
+				}
+			}
+		}
 		Send_FieldBuffer = (real *)malloc(global_real_size);
 		memcpy(Send_FieldBuffer, Global_qrt, global_real_size);
 	}
@@ -490,7 +484,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	// Debug
 	if ( RadiationDebug ) {
 		int check_neg = 1;
-    	int check_zero = 0;
+    int check_zero = 0;
 		CheckField(QirrRT, check_neg, check_zero, "ComputeBinarySourceRT");
 	}
 }
@@ -832,13 +826,6 @@ void ComputeSingleSourceRT (gas_density)
 		for (j = 0; j < ns; j++) {
 			l = j+i*ns;
 			QRT[l] = ComputeQRT(Fs, Rmed[i], gridTau[l], cellTau[l], dr, 0);
-			// if (cellTau[l] < 1) {
-			// 	QRT[l] = Fs*pow(Rmed[i], -2.0)*exp((-1.0)*gridTau[l])*cellTau[l]*InvDiffRsup[i];
-			// } else if ( gridTau[l] > TAUCEILING ) {
-			// 	QRT[l] = 0.0;
-			// } else {
-			// 	QRT[l] = Fs*pow(Rmed[i], -2.0)*exp((-1.0)*gridTau[l])*((1.0-exp((-1.0)*cellTau[l]))*InvDiffRsup[i]);
-			// }
 		}
 	}
 

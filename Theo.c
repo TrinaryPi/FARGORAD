@@ -71,7 +71,7 @@ void RefillSigma (Surfdens)
 real Energy(r)
      real r;
 {
-  real energy0;
+  real energy0=0.0;
   if (ADIABATICINDEX == 1.0) {
     fprintf (stderr, "The adiabatic index must differ from unity to initialize the gas internal energy. I must exit.\n");
     prs_exit (1);
@@ -100,7 +100,8 @@ real Energy(r)
   return energy0;
 }
 
-void FillEnergy() {
+void FillEnergy() 
+{
   int i;
   for (i = 0; i < NRAD; i++)
     EnergyMed[i] = Energy(Rmed[i]);

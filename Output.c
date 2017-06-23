@@ -14,8 +14,12 @@ void EmptyPlanetSystemFile (sys)
   FILE *output;
   char name[256];
   int i, n;
+
   n = sys->nb;
-  if (!CPU_Master) return;
+
+  if (!CPU_Master) {
+    return;
+  }
   for (i = 0; i < n; i++) {
     sprintf (name, "%splanet%d.dat", OUTPUTDIR, i);
     output = fopen (name, "w");
@@ -33,7 +37,10 @@ void WritePlanetFile (TimeStep, n)
 {
   FILE *output;
   char name[256];
-  if (!CPU_Master) return;
+
+  if (!CPU_Master) {
+    return;
+  }
   printf ("Updating 'planet%d.dat'...", n);
   fflush (stdout);
   sprintf (name, "%splanet%d.dat", OUTPUTDIR, n);
@@ -53,7 +60,9 @@ void WritePlanetSystemFile (sys, t)
      int t;
 {
   int i, n;
+
   n = sys->nb;
+
   for (i = 0; i < n; i++) {
     Xplanet = sys->x[i];
     Yplanet = sys->y[i];
@@ -71,7 +80,10 @@ void WriteBigPlanetFile (TimeStep, n)
 {
   FILE *output;
   char name[256];
-  if (!CPU_Master) return;
+
+  if (!CPU_Master) {
+    return;
+  }
   fflush (stdout);
   sprintf (name, "%sbigplanet%d.dat", OUTPUTDIR, n);
   output = fopen (name, "a");
@@ -89,7 +101,9 @@ void WriteBigPlanetSystemFile (sys, t)
      int t;
 {
   int i, n;
+
   n = sys->nb;
+
   for (i = 0; i < n; i++) {
     Xplanet = sys->x[i];
     Yplanet = sys->y[i];
@@ -109,32 +123,34 @@ real GetfromPlanetFile (TimeStep, column, n)
   int time;
   char *pt;
   double value;
+
   sprintf (name, "%splanet%d.dat", OUTPUTDIR, n);
   input = fopen (name, "r");
-  if (input == NULL) {
+  if ( input == NULL ) {
     mastererr ("Can't read 'planet%d.dat' file. Aborting restart.\n",n);
     prs_exit (1);
   }
-  if (column < 2) {
+  if ( column < 2 ) {
     mastererr ("Invalid column number in 'planet%d.dat'. Aborting restart.\n",n);
     prs_exit (1);
   }
   do {
     pt = fgets (testline, 255, input);
     sscanf (testline, "%d", &time);
-  } while ((time != TimeStep) && (pt != NULL));
-  if (pt == NULL) {
+  } while (( time != TimeStep ) && ( pt != NULL ));
+  if ( pt == NULL ) {
     mastererr ("Can't read entry %d in 'planet%d.dat' file. Aborting restart.\n", TimeStep,n);
     prs_exit (1);
   }
   fclose (input);
   pt = testline;
-  while (column > 1) {
+  while ( column > 1 ) {
     pt += strspn(pt, "eE0123456789-.");
     pt += strspn(pt, "\t :=>_");
     column--;
   }
   sscanf (pt, "%lf", &value);
+
   return (real)value;
 }
 
@@ -143,15 +159,17 @@ void RestartPlanetarySystem (timestep, sys)
      int timestep;
 {
   int k;
+
   for (k = 0; k < sys->nb; k++) {
-    if (ConfigPos == NO) {
+    if ( ConfigPos == NO ) {
       sys->x[k] = GetfromPlanetFile (timestep, 2, k);
       sys->y[k] = GetfromPlanetFile (timestep, 3, k);
       sys->vx[k] = GetfromPlanetFile (timestep, 4, k);
       sys->vy[k] = GetfromPlanetFile (timestep, 5, k);
     }
-    if (ConfigMp == NO)
+    if ( ConfigMp == NO ) {
       sys->mass[k] = GetfromPlanetFile (timestep, 6, k);
+    }
   }
 }
 
@@ -163,15 +181,18 @@ void WriteDiskPolar(array, number)
   FILE          *dump;
   char 		name[256];
   real 		*ptr;
+
   ptr = array->Field;
-  if (CPU_Master)
+
+  if ( CPU_Master ) {
     sprintf (name, "%s%s%d.dat", OUTPUTDIR, array->Name, number);
-  else
+  } else {
     sprintf (name, "%s%s%d.dat.%05d", OUTPUTDIR, array->Name, number, CPU_Rank);
+  }
   Nr = array->Nrad;
   Ns = array->Nsec;
   dump = fopen(name, "w");
-  if (dump == NULL) {
+  if ( dump == NULL ) {
     fprintf(stderr, "Unable to open '%s'.\n", name);
     prs_exit(1);
   }
@@ -180,13 +201,13 @@ void WriteDiskPolar(array, number)
   MPI_Barrier (MPI_COMM_WORLD);
 /* We strip the first CPUOVERLAP rings if the current CPU is not the 
    innermost one */
-  if (CPU_Rank > 0) {
+  if ( CPU_Rank > 0 ) {
     ptr += CPUOVERLAP*Ns;
     Nr -=CPUOVERLAP ;
   }
 /* We strip the last CPUOVERLAP rings if the current CPU is not the outermost
    one, equal to CPU_Highest in all cases */
-  if (CPU_Rank != CPU_Highest) {
+  if ( CPU_Rank != CPU_Highest ) {
     Nr -=CPUOVERLAP;
   }
   fwrite (ptr, sizeof(real), Nr*Ns,dump);
@@ -200,9 +221,12 @@ void WriteDiskPolar(array, number)
 void WriteDim () {	  
   char filename[256];
   FILE 	*dim;
-  if (!CPU_Master) return;
+
+  if ( !CPU_Master ) {
+    return;
+  }
   sprintf (filename, "%sdims.dat", OUTPUTDIR);
-  if ((dim = fopen (filename, "w")) == NULL) {
+  if ( (dim = fopen (filename, "w")) == NULL ) {
     fprintf (stderr, "Unable to open %s. Program stopped\n", filename);
     prs_exit (1);
   }
@@ -214,26 +238,51 @@ void SendOutput (index, dens, gasvr, gasvt, gasenerg, label, e_cell)
      int          index;
      PolarGrid   *dens, *gasvr, *gasvt, *label, *gasenerg, *e_cell;
 {
-  if (CPU_Master)
+  if ( CPU_Master ) {
     printf ("\n*** OUTPUT %d ***\n", index);
-  if (IsDisk == YES) {
-      if (Write_Density == YES) WriteDiskPolar (dens, index);
-      if (Write_Velocity == YES) {
+  }
+  if ( IsDisk ) {
+      if ( Write_Density ) {
+        WriteDiskPolar (dens, index);
+      }
+      if ( Write_Velocity ) {
 	       WriteDiskPolar (gasvr, index);
 	       WriteDiskPolar (gasvt, index);
       }
-      if (Write_Eccentricity == YES) WriteDiskPolar (e_cell, index);
-      if (Write_Energy == YES) WriteDiskPolar (gasenerg, index);
-      if (Write_Temperature == YES) WriteDiskPolar (Temperature, index);
-      if (Write_DivV == YES) WriteDiskPolar (DivergenceVelocity, index);
-      if (Write_Qplus == YES)  WriteDiskPolar (Qplus, index);
-      if (AdvecteLabel == YES) WriteDiskPolar (label, index);
-      if (Write_Qminus == YES) WriteDiskPolar (Qminus, index);
-      if (Write_Qirr == YES) WriteDiskPolar (Qirr, index);
-      if (Write_QirrRT == YES) WriteDiskPolar (QirrRT, index);
-      if (Write_DiscHeight == YES) WriteDiskPolar (DiscHeight, index);
-      if (Write_Kappa == YES) WriteDiskPolar (RKappaval, index);
-      if (Write_Coeffs == YES) {
+      if ( Write_Eccentricity ) {
+        WriteDiskPolar (e_cell, index);
+      }
+      if ( Write_Energy ) {
+        WriteDiskPolar (gasenerg, index);
+      }
+      if ( Write_Temperature ) {
+        WriteDiskPolar (Temperature, index);
+      }
+      if ( Write_DivV ) {
+        WriteDiskPolar (DivergenceVelocity, index);
+      }
+      if ( Write_Qplus ) {
+        WriteDiskPolar (Qplus, index);
+      }
+      if ( AdvecteLabel ) {
+        WriteDiskPolar (label, index);
+      }
+      if ( Write_Qminus ) {
+        WriteDiskPolar (Qminus, index);
+      }
+      if ( Write_Qirr ) {
+        WriteDiskPolar (Qirr, index);
+      }
+      if ( Write_QirrRT ) {
+        WriteDiskPolar (QirrRT, index);
+      }
+      if ( Write_DiscHeight ) {
+        WriteDiskPolar (DiscHeight, index);
+      }
+      if ( Write_Kappa ) {
+        WriteDiskPolar (RKappaval, index);
+      }
+      if ( Write_Coeffs ) {
         WriteDiskPolar (Darr, index);
         WriteDiskPolar (Barr, index);
         WriteDiskPolar (U1arr, index);
@@ -241,23 +290,27 @@ void SendOutput (index, dens, gasvr, gasvt, gasenerg, label, e_cell)
         WriteDiskPolar (U3arr, index);
         WriteDiskPolar (U4arr, index);
       }
-      if (Write_Taus == YES) {
+      if ( Write_Taus ) {
         WriteDiskPolar(Tau_cell, index);
         WriteDiskPolar(Tau_grid, index);
       }
-      if (Write_Residual == YES) WriteDiskPolar (Residual, index);
-      if (Write_Rfld == YES) {
+      if ( Write_Residual ) {
+        WriteDiskPolar (Residual, index);
+      }
+      if ( Write_Rfld ) {
         WriteDiskPolar(Rfld, index);
         WriteDiskPolar(lambdafld, index);
       }
-      if (Write_OpticalDepths == YES) {
+      if ( Write_OpticalDepths ) {
         WriteDiskPolar(OpticalDepth, index);
         WriteDiskPolar(OpticalDepthEff, index);
       }
 
-      MPI_Barrier (MPI_COMM_WORLD);
-      if (Merge && (CPU_Number > 1)) merge (index);
-      if (RadTransport == YES)
+      MPI_Barrier(MPI_COMM_WORLD);
+      if ( Merge && (CPU_Number > 1) ) {
+        merge(index);
+      }
+      if ( RadTransport )
         WriteRadTransInfo();
   }
 }
@@ -268,13 +321,20 @@ void WriteSimVariableFile ()
   int lg_grid = 0, bin_on = 0;
   FILE *output;
   char name[256];
-  if (!CPU_Master) return;
-  if (BinaryOn == YES) bin_on = 1;
-  if (LogGrid == YES) lg_grid = 1;
+
+  if ( !CPU_Master ) {
+    return;
+  }
+  if ( BinaryOn ) {
+    bin_on = 1;
+  }
+  if ( LogGrid ) {
+    lg_grid = 1;
+  }
   fflush (stdout);
   sprintf (name, "%ssimvars.dat", OUTPUTDIR);
   output = fopen (name, "w");
-  if (output == NULL) {
+  if ( output == NULL ) {
     fprintf (stderr, "Can't write 'simvars.dat' file. Aborting.\n");
     prs_exit (1);
   }

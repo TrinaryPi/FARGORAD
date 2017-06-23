@@ -12,16 +12,21 @@ void ReadfromFile (array, fileprefix, filenumber)
   real *field;
   char name[256];
   FILE *input;
+
   /* Simultaneous read access to the same file have been observed to
      give wrong results. */
   /* A sequential reading is imposed below. */
   /* If current CPU has a predecessor, wait for a message from him */
-  if (CPU_Rank > 0) MPI_Recv (&foo, 1, MPI_INT, CPU_Prev, 10, MPI_COMM_WORLD, &stat);
+  if (CPU_Rank > 0) {
+    MPI_Recv(&foo, 1, MPI_INT, CPU_Prev, 10, MPI_COMM_WORLD, &stat);
+  }
   sprintf (name, "%s%s%d.dat", OUTPUTDIR, fileprefix, filenumber);
   input = fopen (name, "r");
-  if (input == NULL) {
+  if ( input == NULL ) {
     fprintf (stderr, "WARNING ! Can't read %s. Restarting with t=0 settings.\n", name); 
-    if (CPU_Rank < CPU_Highest) MPI_Send (&foo, 1, MPI_INT, CPU_Next, 10, MPI_COMM_WORLD);
+    if ( CPU_Rank < CPU_Highest ) {
+      MPI_Send(&foo, 1, MPI_INT, CPU_Next, 10, MPI_COMM_WORLD);
+    }
     return;
   }
   field = array->Field;
@@ -35,9 +40,8 @@ void ReadfromFile (array, fileprefix, filenumber)
   fclose (input);
   /* Next CPU is waiting. Tell it to start now by sending the message
      that it expects */
-  if (CPU_Rank < CPU_Highest) MPI_Send (&foo, 1, MPI_INT, CPU_Next, 10, MPI_COMM_WORLD);
-  MPI_Barrier (MPI_COMM_WORLD);	/* previous CPUs do not touch anything
-				   meanwhile */
+  if (CPU_Rank < CPU_Highest) MPI_Send(&foo, 1, MPI_INT, CPU_Next, 10, MPI_COMM_WORLD);
+  MPI_Barrier (MPI_COMM_WORLD);	/* previous CPUs do not touch anything meanwhile */
 }
 
 void InitLabel (array, sys)
@@ -48,11 +52,13 @@ void InitLabel (array, sys)
   real xp, yp, rp;
   real x, y, angle, distance, rhill;
   real *field;
+
   field = array->Field;
   nr = array->Nrad;
   ns = array->Nsec;
   xp = sys->x[0];
   yp = sys->y[0];
+
   rp = sqrt ( xp*xp + yp*yp );
   rhill = rp * pow( sys->mass[0]/3., 1./3 );
    /* Initialize label as you wish. In this example, label only takes
@@ -64,10 +70,11 @@ void InitLabel (array, sys)
       x = Rmed[i] * cos(angle);
       y = Rmed[i] * sin(angle);
       distance = sqrt( (x - xp)*(x - xp) + (y - yp)*(y - yp) );
-      if ( distance < rhill )
-	field[l] = 1.0;
-      else
-	field[l] = 0.0;
+      if ( distance < rhill ) {
+        field[l] = 1.0;
+      } else {
+        field[l] = 0.0;
+      }
     }
   }
 }
@@ -79,13 +86,15 @@ void Initialization (gas_density, gas_v_rad, gas_v_theta, gas_energy, gas_label,
   extern boolean Adiabatic;
   real *energ, *dens;
   int i, j, l, nr, ns;
+
   energ = gas_energy->Field;
   nr = gas_energy->Nrad;
   ns = gas_energy->Nsec;
+
   ReadPrevDim ();
   InitEuler (gas_v_rad, gas_v_theta, gas_density, gas_energy);
   InitLabel (gas_label, pla_sys);
-  if (Restart == YES) {
+  if ( Restart ) {
     CheckRebin (NbRestart);
     MPI_Barrier (MPI_COMM_WORLD);
     /* Don't start reading before master has finished rebining... */
@@ -96,12 +105,12 @@ void Initialization (gas_density, gas_v_rad, gas_v_theta, gas_energy, gas_label,
     ReadfromFile (gas_density, "gasdens", NbRestart);
     ReadfromFile (gas_v_rad, "gasvrad", NbRestart);
     ReadfromFile (gas_v_theta, "gasvtheta", NbRestart);
-    if (Adiabatic) {
+    if ( Adiabatic ) {
       ReadfromFile (gas_energy, "gasTemperature", NbRestart);
       /* ! gas_energy accounts for the gas temperature... */
       dens = gas_density->Field;
-      for (i=0; i<nr; i++) {
-        for (j=0; j<ns; j++) {
+      for (i = 0; i < nr; i++) {
+        for (j = 0; j < ns; j++) {
         	l=j+i*ns;
           energ[l] = dens[l]*energ[l]/(ADIABATICINDEX-1.0); /* this is e = dens*temp / (gamma-1) */
         }
@@ -111,9 +120,13 @@ void Initialization (gas_density, gas_v_rad, gas_v_theta, gas_energy, gas_label,
       ComputeTemperatureField (gas_density, gas_energy);
     }
     ReadfromFile (gas_label, "gaslabel", NbRestart);
-    if (StoreSigma) RefillSigma (gas_density);
+    if ( StoreSigma ) {
+      RefillSigma (gas_density);
+    }
     /* StoreEnergy = NO if Adiabatic = NO */
-    if (StoreEnergy) RefillEnergy (gas_energy);
+    if ( StoreEnergy ) {
+      RefillEnergy (gas_energy);
+    }
     fprintf (stderr, "done\n");
     fflush (stderr);
   }

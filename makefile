@@ -15,8 +15,8 @@ PARACC_LINUX = mpicc
 #accordingly) FARGO_ARCH must be set to INTEL (sequential only, MPI
 #identical to generic IA32)
 CC_INTEL  = icc
-OPT_INTEL = 
-OPTSEQ_INTEL = -O3  -g -Wall
+OPT_INTEL = -O3  -g -Wall -Wno-unused-result -Wno-unknown-pragmas
+OPTSEQ_INTEL =
 PARAOPT_INTEL = -O3 -march=native 
 PARACC_INTEL = mpicc
 
@@ -70,7 +70,7 @@ PARACC_SPARC = mpicc
 # Setup for AMD cifib apocrita nodes with PGI compiler, FARGO_ARCH must be set to 
 # PGI
 CC_PGI  = pgcc
-OPT_PGI = -fast -O3
+OPT_PGI = -fast -O3 -B
 OPTSEQ_PGI = 
 PARAOPT_PGI =
 PARACC_PGI = mpicc
@@ -97,7 +97,7 @@ MAINOBJ         = LowTasks.o SideEuler.o Output.o Init.o main.o Theo.o\
 		  Pframeforce.o split.o merge.o commbound.o fpe.o rebin.o\
 		  sgmain.o sginit.o sgdens.o sgkernel.o sgacc.o sgzero.o\
 		  sgupdate.o sgvelinit.o sgsysinit.o axilib.o aniso.o\
-		  binary.o Radiation.o InitRadiation.o RayTracing.o DebugTools.o\
+		  binary.o Radiation.o InitRadiation.o RayTracing.o DebugTools.o Opacity.o\
 		  
 MPIDUMMY	= mpi_dummy.o
 FFTWDUMMY	= fftw_dummy.o
@@ -159,12 +159,6 @@ AUTOINCL    = param.h param_noex.h global_ex.h
 
 include	.config
 EXENAME = ../fargorad
-ifeq ($(FARGO_ARCH),PGI)
-	EXENAME        = ../fargorad_pgi
-endif
-ifeq ($(FARGO_ARCH),gcc)
-	EXENAME        = ../fargorad_gcc
-endif
 
 ARCHIVE		= $(EXENAME:../%=%.tar)
 ARCHIVECOMP	= $(EXENAME:../%=%.tar.gz)
