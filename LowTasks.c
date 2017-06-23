@@ -7,13 +7,13 @@ real GetGlobalIFrac (r)
   int i=0;
   real ifrac;
 
-  if (r < GlobalRmed[0]) {
+  if ( r < GlobalRmed[0] ) {
     return 0.0;
   }
-  if (r > GlobalRmed[GLOBALNRAD-1]) {
+  if ( r > GlobalRmed[GLOBALNRAD-1] ) {
     return (real)GLOBALNRAD-1.0;
   }
-  while (GlobalRmed[i] <= r) {
+  while ( GlobalRmed[i] <= r ) {
     i++;
   }
   ifrac = (real)i+(r-GlobalRmed[i-1])/(GlobalRmed[i]-GlobalRmed[i-1])-1.0;
@@ -32,7 +32,7 @@ void masterprint (const char *template, ...)
 {
   va_list ap;
 
-  if (!CPU_Master) {
+  if ( !CPU_Master ) {
     return;
   }
   va_start (ap, template);
@@ -44,7 +44,7 @@ void mastererr (const char *template, ...)
 {
   va_list ap;
 
-  if (!CPU_Master) {
+  if ( !CPU_Master ) {
     return;
   }
   va_start (ap, template);
@@ -65,11 +65,11 @@ void *prs_malloc (number_of_bytes)
   void *ptr;
   long i;
 
-  if (number_of_bytes <= 0) {
+  if ( number_of_bytes <= 0 ) {
     return NULL;
   }
   ptr = malloc (number_of_bytes);
-  if (ptr == NULL) {
+  if ( ptr == NULL ) {
     erreur ("Not enough memory.");
   }
   for (i = 0; i < number_of_bytes; i++) {
@@ -95,15 +95,15 @@ PolarGrid *CreatePolarGrid(Nr, Ns, name)
   int             i, j, l;
   
   array = (PolarGrid *) malloc(sizeof(PolarGrid));
-  if (array == NULL) {
+  if ( array == NULL ) {
     erreur("Insufficient memory for PolarGrid creation");
   }
   field = (real *) malloc(sizeof(real) * (Nr + 3) * (Ns + 1) + 5);
-  if (field == NULL) {
+  if ( field == NULL ) {
     erreur("Insufficient memory for PolarGrid creation");
   }
   string = (char *) malloc(sizeof(char) * 80);
-  if (string == NULL) {
+  if ( string == NULL ) {
     erreur("Insufficient memory for PolarGrid creation");
   }
   sprintf(string, "gas%s", name);
@@ -121,16 +121,17 @@ PolarGrid *CreatePolarGrid(Nr, Ns, name)
   return array;
 }
 
-
 void MultiplyPolarGridbyConstant (arraysrc, constant)
      PolarGrid *arraysrc;
      real constant;
 {
   int i, nr, ns;
   real *fieldsrc;
+
   nr = arraysrc->Nrad;
   ns = arraysrc->Nsec;
   fieldsrc  =  arraysrc->Field;
+
 #pragma omp parallel for
   for (i = 0; i < (nr+1)*ns; i++) {
     fieldsrc[i] *= constant;
@@ -146,7 +147,10 @@ void DumpSources (argc, argv)
   int i;
   FILE *COM;
   int systemret;
-  if (!CPU_Master) return;
+
+  if ( !CPU_Master ) {
+    return;
+  }
   sprintf (CommandLine, "cp source.tar.bz2 %ssrc.tar.bz2", OUTPUTDIR);
   systemret = system(CommandLine);
   if ( systemret == -1 ) {
@@ -154,7 +158,7 @@ void DumpSources (argc, argv)
   }
   sprintf (filecom, "%srun.commandline", OUTPUTDIR);
   COM = fopen (filecom, "w");
-  if (COM == NULL) {
+  if ( COM == NULL ) {
     mastererr ("Could not open %s\nAborted.\n", filecom);
     prs_exit(1);
   }
@@ -162,4 +166,34 @@ void DumpSources (argc, argv)
     fprintf (COM, "%s ",argv[i]);
   }
   fclose (COM);
+}
+
+void EmptyTargetFolder ()
+  // Input N/A
+{
+  if ( !CPU_Master ) {
+    return;
+  }
+  // Declaration 
+  DIR *theFolder = opendir(OUTPUTDIR);
+  struct dirent *next_file;
+  char filepath[256];
+
+  // Function
+  printf("Deleting old files in target directory...\n");
+  next_file = readdir(theFolder);
+  while ( (next_file = readdir(theFolder)) != NULL )
+  {
+    if (( 0 == strcmp(next_file->d_name, "." ) ) || ( 0 == strcmp(next_file->d_name, "..") )) {
+      printf("\tskipping %s\n", next_file->d_name);
+      continue;
+    }
+    /* build the path for each file in the folder */
+    sprintf(filepath, "%s%s", OUTPUTDIR, next_file->d_name);
+    printf("\tremoving %s...", next_file->d_name);
+    remove(filepath);
+    printf("done.\n");
+  }
+  closedir(theFolder);
+  printf("done.\n");
 }

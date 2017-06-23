@@ -55,104 +55,111 @@ main(argc, argv)
       if (strspn (argv[i], "-secndovtpfamzibkqr0123456789") != strlen (argv[i])){
 	      PrintUsage (argv[0]);
       }
-      if (strchr (argv[i], 'n')) {
+      if ( strchr (argv[i], 'n') ) {
         disable = YES;
       }
-      if (strchr (argv[i], 'e')) {
+      if ( strchr (argv[i], 'e') ) {
         Stockholm = YES;
       }
-      if (strchr (argv[i], 'v')) {
+      if ( strchr (argv[i], 'v') ) {
         verbose = YES;
       }
-      if (strchr (argv[i], 't')) {
+      if ( strchr (argv[i], 't') ) {
         TimeInfo = YES;
       }
-      if (strchr (argv[i], 'c')) {
+      if ( strchr (argv[i], 'c') ) {
         SloppyCFL = YES;
       }
-      if (strchr (argv[i], 'p')) {
+      if ( strchr (argv[i], 'p') ) {
         Profiling = YES;
       }
-      if (strchr (argv[i], 'd')) {
+      if ( strchr (argv[i], 'd') ) {
         debug = YES;
       }
-      if (strchr (argv[i], 'b')) {
+      if ( strchr (argv[i], 'b') ) {
         CentrifugalBalance = YES;
       }
-      if (strchr (argv[i], 'q')) {
+      if ( strchr (argv[i], 'q') ) {
         BinaryOn = YES;
       }
-      if (strchr (argv[i], 'k')) {
+      if ( strchr (argv[i], 'k') ) {
         DiscElem = YES;
       }
-      if (strchr (argv[i], 'm')) {
+      if ( strchr (argv[i], 'm') ) {
         Merge = YES;
       }
-      if (strchr (argv[i], 'a')) {
+      if ( strchr (argv[i], 'a') ) {
         MonitorIntegral = YES;
       }
-      if (strchr (argv[i], 'z')) {
+      if ( strchr (argv[i], 'z') ) {
         FakeSequential = YES;
       }
-      if (strchr (argv[i], 'r')) {
+      if ( strchr (argv[i], 'r') ) {
         RadiationDebug = YES;
       }
-      if (strchr (argv[i], 'i')) {
-	      StoreSigma = YES;
-	      if (Adiabatic) {
+      if ( strchr (argv[i], 'i') ) {
+	      StoreSigma = YES; 
+	      if ( Adiabatic ) {
 	        StoreEnergy = YES;
         }
       }
-      if (strchr (argv[i], '0')){
+      if ( strchr (argv[i], '0') ) {
 	      OnlyInit = YES;
       }
-      if ((argv[i][1] >= '1') && (argv[i][1] <= '9')) {
+      if (( argv[i][1] >= '1' ) && ( argv[i][1] <= '9' )) {
 	      GotoNextOutput = YES;
 	      StillWriteOneOutput = (int)(argv[i][1]-'0');
       }
-      if (strchr (argv[i], 's')) {
+      if ( strchr (argv[i], 's') ) {
 	      Restart = YES;
 	      FirstRestartOutput = 1;
 	      i++;
 	      NbRestart = atoi(argv[i]);
-	      if ((NbRestart < 0)) {
+	      if ( (NbRestart < 0) ) {
 	        masterprint ("Incorrect restart number\n");
 	        PrintUsage (argv[0]);
 	      }
       }
-      if (strchr (argv[i], 'o')) {
+      if ( strchr (argv[i], 'o') ) {
 	      OverridesOutputdir = YES;
 	      i++;
 	      sprintf (NewOutputdir, "%s", argv[i]);
       } else {
-	      if (strchr (argv[i], 'f')) {
+	      if ( strchr (argv[i], 'f') ) {
           i++;
           ScalingFactor = atof(argv[i]);
           masterprint ("Scaling factor = %g\n", ScalingFactor);
-	        if ((ScalingFactor <= 0)) {
+	        if ( ScalingFactor <= 0) {
 	          masterprint ("Incorrect scaling factor\n");
 	          PrintUsage (argv[0]);
 	        }
 	      }
       }
+    } else {
+      strcpy (ParameterFile, argv[i]);
     }
-    else strcpy (ParameterFile, argv[i]);
   }
-  if ( (StoreSigma || StoreEnergy) && !(Restart)) {
+  
+  if (( StoreSigma || StoreEnergy ) && !Restart ) {
     mastererr ("You cannot use tabulated surface density\n");
     mastererr ("or surface internal energy in a non-restart run.\n");
     mastererr ("Aborted\n");
     prs_exit (0);
   }
-  if (ParameterFile[0] == 0) {
+  if ( ParameterFile[0] == 0 ) {
     PrintUsage (argv[0]);
   }
   ReadVariables (ParameterFile);
+  
+  if ( Restart == NO ) {
+    EmptyTargetFolder();
+  }
+
   SplitDomain ();
-  if (verbose == YES) {
+  if ( verbose ) {
     TellEverything ();
   }
-  if (disable == YES) {
+  if ( disable ) {
     prs_exit (0);
   }
   DumpSources (argc, argv);
@@ -182,9 +189,7 @@ main(argc, argv)
 
   if ( BinaryOn ) {
     BinaryOn = CountStars (bsys);
-  }
-
-  if ( BinaryOn == NO ) {
+  } else {
     bsys->nb = 0;
   }
   
@@ -212,7 +217,7 @@ main(argc, argv)
   }
   
   OmegaFrame = OMEGAFRAME;
-  if (Corotating == YES){
+  if ( Corotating ) {
     OmegaFrame = GetPsysInfo (sys, FREQUENCY);
   }
 
@@ -293,7 +298,7 @@ main(argc, argv)
 	      UpdateLogStockholm (sys, gas_density, gas_energy, TimeStep, PhysicalTime);
       }
     }
-    if ( NINTERM * (TimeStep = (i / NINTERM) ) == i) {
+    if ( NINTERM * (TimeStep = (i / NINTERM) ) == i ) {
       /* Outputs are done here */
       TimeToWrite = YES;
       SendOutput (TimeStep, gas_density, gas_v_rad, gas_v_theta, gas_energy, gas_label, gas_e_cell);
@@ -344,7 +349,7 @@ main(argc, argv)
   FreePlanetary (sys);
   FreeBinary (bsys);
   FreeForce (force);
-  if ( ( SelfGravity ) && (!SGZeroMode )) {
+  if (( SelfGravity ) && (!SGZeroMode )) {
     rfftwnd_mpi_destroy_plan(SGP_fftplan_forward);
     rfftwnd_mpi_destroy_plan(SGP_fftplan_backward);
   }

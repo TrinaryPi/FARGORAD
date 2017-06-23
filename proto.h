@@ -233,3 +233,5 @@ real FLDConditionCFL();
 void SubStep4_Explicit();
 void SubStep4_Explicit_Irr();
 void SetTemperatureBoundaries();
+
+void EmptyTargetFolder();

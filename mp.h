@@ -3,6 +3,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <time.h>
+#include <dirent.h>
 #include "fondam.h"
 #include "types.h"
 #include "proto.h"
