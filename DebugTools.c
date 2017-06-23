@@ -165,7 +165,6 @@ void DumpRadiationFields(Field)
 		}
 		WriteDiskPolar(RKappaval, 9999);
 	}
-	WriteDiskPolar(SigmaGlobal, 9999);
 	WriteDiskPolar(Temperature, 9999);
 	WriteDiskPolar(Field, 9999);
 	WriteDiskPolar(Qplus, 9999);

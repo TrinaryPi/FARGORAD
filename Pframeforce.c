@@ -360,7 +360,6 @@ void InitGasDensity (Rho)
   real *dens, *Dens;
 
   dens = Rho->Field;
-  Dens = SigmaGlobal->Field;
   nr = Rho->Nrad;
   ns = Rho->Nsec;
 
@@ -369,7 +368,6 @@ void InitGasDensity (Rho)
     for (j = 0; j < ns; j++) {
       l = j+i*ns;
       dens[l] = SigmaMed[i];
-      Dens[l] = SigmaMed[i];
     }
   }
 }
