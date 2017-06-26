@@ -63,8 +63,9 @@ void ComputeDiscHeight (bsys)
 					height[l] = 0.0;
 					for (s = 0; s < nb; s++) {
 						/* Add a smoothing length to cell-binary distance, to avoid singularities */
-						smooth = (0.49*pow(q[s], 2.0/3.0))/(0.6*pow(q[s], 2.0/3.0) + log(1.0 + pow(q[s], 1.0/3.0)))*A;
-						smooth *= smooth;
+						// smooth = (0.49*pow(q[s], 2.0/3.0))/(0.6*pow(q[s], 2.0/3.0) + log(1.0 + pow(q[s], 1.0/3.0)))*A;
+						// smooth *= smooth;
+						smooth = 0.0;
 						dist = (xc - xstar[s])*(xc -xstar[s]) + (yc - ystar[s])*(yc - ystar[s]);
 						dist_smooth = sqrt(dist + smooth);
 						csiso = cs[l]/sqrt(ADIABATICINDEX);
