@@ -183,8 +183,32 @@ void DumpRadiationFields(Field)
 		}
 		WriteDiskPolar(RKappaval, 9999);
 	}
+	WriteDiskPolar(Density, 9999);
 	WriteDiskPolar(Temperature, 9999);
 	WriteDiskPolar(Field, 9999);
 	WriteDiskPolar(Qplus, 9999);
 	WriteDiskPolar(QDiv, 9999);
+}
+
+void CopyDensity(local_density)
+	// Input
+	PolarGrid *local_density;
+{
+	// Declaration
+	int i, j, l, nr, ns;
+	real *local_density_field, *global_density_field;
+
+	// Assignment
+	nr = local_density->Nrad;
+	ns = local_density->Nsec;
+	local_density_field = local_density->Field;
+	global_density_field = Density->Field;
+
+	// Function
+	for (i = 0; i < nr; i++) {
+		for (j = 0; j < ns; j++) {
+			l = j+i*ns;
+			global_density_field[l] = local_density_field[l];
+		}
+	}
 }

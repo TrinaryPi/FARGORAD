@@ -242,3 +242,4 @@ void SubStep4_Explicit_Irr();
 void SetTemperatureBoundaries();
 
 void EmptyTargetFolder();
+void CopyDensity();

@@ -60,4 +60,4 @@ extern RayStruct *ray;
 extern real *Global_sigma, *Global_rkappa, *Global_height, *Global_temperature, *Global_qrt;
 extern real DiffRsup[MAX1D], GlobalTheta[MAX1D];
 extern PolarGrid *QDiv, *TempSourcesSinks, *OpticalDepth, *OpticalDepthEff, *lambdafld;
-extern PolarGrid *TempGuess, *TempGuess_old;
+extern PolarGrid *TempGuess, *TempGuess_old, *Density;

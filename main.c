@@ -173,6 +173,7 @@ main(argc, argv)
   masterprint ("Allocating arrays...");
   fflush (stdout);
   gas_density        = CreatePolarGrid(NRAD, NSEC, "dens");
+  Density 					 = CreatePolarGrid(NRAD, NSEC, "Dens");
   gas_v_rad          = CreatePolarGrid(NRAD, NSEC, "vrad");
   gas_v_theta        = CreatePolarGrid(NRAD, NSEC, "vtheta");
   gas_energy         = CreatePolarGrid(NRAD, NSEC, "energy");

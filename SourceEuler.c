@@ -258,6 +258,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     	StarTaper = PhysicalTime/(STARTAPER*2.0*M_PI); 
     	StarTaper = (StarTaper > 1.0 ? 1.0 : pow(sin(StarTaper*M_PI/2.0), 2.0));
     }
+    CopyDensity(Rho);
 
     if ( IsDisk ) {
       CommunicateBoundaries (Rho, Vrad, Vtheta, Energy, Label);

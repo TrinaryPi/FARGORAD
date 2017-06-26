@@ -68,4 +68,4 @@ real *Global_sigma, *Global_rkappa, *Global_height, *Global_temperature, *Global
 real DiffRsup[MAX1D], GlobalTheta[MAX1D];
 
 PolarGrid *QDiv, *TempSourcesSinks, *OpticalDepth, *OpticalDepthEff, *lambdafld;
-PolarGrid *TempGuess, *TempGuess_old;
+PolarGrid *TempGuess, *TempGuess_old, *Density;
