@@ -98,6 +98,7 @@ MAINOBJ         = LowTasks.o SideEuler.o Output.o Init.o main.o Theo.o\
 		  sgmain.o sginit.o sgdens.o sgkernel.o sgacc.o sgzero.o\
 		  sgupdate.o sgvelinit.o sgsysinit.o axilib.o aniso.o\
 		  binary.o Radiation.o InitRadiation.o RayTracing.o DebugTools.o Opacity.o\
+		  RadiationTransport.o
 		  
 MPIDUMMY	= mpi_dummy.o
 FFTWDUMMY	= fftw_dummy.o

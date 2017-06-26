@@ -6,10 +6,10 @@
 	* @description     :
 */
 #include "mp.h"
+#include "radiation.h"
 
-extern boolean RayTracingHeating, ExplicitRayTracingHeating, ImplicitRayTracingHeating;
 extern real StarTaper;
-extern boolean	BitschSKappa, HubenySKappa, EmptyCavity, RadiationDebug;
+extern boolean RadiationDebug;
 
 static real *SendInnerBoundary;
 static real *SendOuterBoundary;
@@ -1083,6 +1083,35 @@ real ComputeQRT(starcons, radius, tau, dtau, dr, flag)
 
 	// Output
 	return qrt;
+}
+
+void SubStep4_Explicit_Irr (gas_density, gas_energy, timestep)
+	// Input
+	PolarGrid *gas_density;
+	PolarGrid *gas_energy;
+  real timestep;
+{
+	// Declaration
+	int i, j, l, ns, nr;
+	real *temperature, *Qirrrt, *energy, *density;
+
+	// Assignment
+	nr = QirrRT->Nrad;
+	ns = QirrRT->Nsec;
+	Qirrrt = QirrRT->Field;
+	temperature = Temperature->Field;
+	energy = gas_energy->Field;
+	density = gas_density->Field;
+
+
+	// Function
+ 	for (i = 0; i < nr; i++) {
+ 		for (j = 0; j < ns; j++) {
+ 			l = j+i*ns;
+ 			temperature[l] += timestep*Qirrrt[l];
+ 			energy[l] = CV*density[l]*temperature[l];
+ 		}
+ 	}
 }
 
 void PrintRayInfo ()

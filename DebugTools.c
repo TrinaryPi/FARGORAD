@@ -8,6 +8,7 @@
 #include "mp.h"
 #include "radiation.h"
 
+
 extern boolean PreInitialisation;
 extern boolean Cooling;
 extern boolean CustomCooling;
@@ -189,6 +190,7 @@ void DumpRadiationFields(Field)
 	WriteDiskPolar(Qplus, 9999);
 	WriteDiskPolar(QDiv, 9999);
 }
+
 
 void CopyDensity(local_density)
 	// Input
