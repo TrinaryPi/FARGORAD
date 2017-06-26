@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : Pframeforce.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:57
+	* @description     :
+*/
 #include "mp.h"
 
 extern boolean AllowAccretion, Corotating, Indirect_Term, Cooling, BinaryOn, Restart;

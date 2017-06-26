@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : Radiation.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:57
+	* @description     :
+*/
 #include "mp.h"
 
 #define LITTLE_NUMBER_FIX  1.0E-15
@@ -324,7 +331,7 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 	int iteration;
 	real *T, *Tguess, *Tguess_old;
 	real *B, *U1, *U2, *U3, *U4, *residual, *Rij;
-	real qirrrt = 0.0, qirr = 0.0, qminus = 0.0;
+	real qirrrt = 0.0, qirr = 0.0;
 	real norm_tmp[2], norm, cvfac, tol;
 
 	// Assignment
@@ -343,7 +350,7 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 
 	// Constants
 	cvfac = timestep*MU*(ADIABATICINDEX-1.0)/R;
-
+	/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
 	if ( CPU_Rank == 0 ) {
 		i = 0;
 		for (j = 0; j < ns; j++) {
@@ -363,8 +370,8 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 
 	// Function
 	ComputeRadTransCoeffs(gas_density, timestep);
-
 	if ( ExplicitRadTransport ) {
+		/* Instead of an iterative implicit SOR step, carry out FLD with a set of explicit sub-cycles */
 		SubStep4_Explicit(gas_density, gas_energynew, timestep);
 	} else {
 		norm_tmp[0] = 0.0;
@@ -382,11 +389,8 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 		  		if ( Irradiation ) {
 		  			qirr = Qirr->Field[l];
 		  		}
-		  		if ( RadCooling ) {
-		  			qminus = Qminus->Field[l];
-		  		}
 		  	}
-		  	Rij[l] = T[l] + qirrrt + cvfac*(qirr - qminus)/gas_density->Field[l];
+		  	Rij[l] = T[l] + qirrrt + cvfac*qirr/gas_density->Field[l];
 	 			Tguess[l] = T[l];
 	 			Tguess_old[l] = 0.0;
 	 			norm_tmp[1] += fabs(Rij[l]);
@@ -930,7 +934,7 @@ void WriteRadTransInfo()
 	counter = 1;
 }
 
-void ResetTempSourcesSinks ()
+void ResetTempSourcesSinks()
 	// Input N/A
 {	// Declaration
 	int i, nr, ns;
@@ -942,7 +946,7 @@ void ResetTempSourcesSinks ()
 	Rij = TempSourcesSinks->Field;
 
 	//Function
-	for (i = 0; i < ns+nr*ns; i++) {
+	for (i = 0; i < ns + nr*ns; i++) {
 		Rij[i] = 0.0;
 	}
 }
@@ -960,7 +964,7 @@ real FLDConditionCFL()
 	D  = Darr->Field;
 
 	// Constants
-	factor = 0.1;
+	factor = 0.01;
 
 	// Function
 	for (i = One_or_active; i < MaxMO_or_active; i++) {
@@ -1027,21 +1031,21 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
     dt_remainder = timestep - (real)FLDTimeStepsCFL*dt_FLD;
   }
 
-  /* Apply inner and outer temperature boundary conditions */
-	if ( CPU_Rank == 0 ) {
-		i = 0;
-		for (j = 0; j < ns; j++) {
-			l = j+i*ns;
-			Tnew[l] = TINNER;
-		}
-	}
-	if ( CPU_Rank == CPU_Highest ) {
-		i = nr-1;
-		for (j = 0; j < ns; j++) {
-			l = j+i*ns;
-			Tnew[l] = TOUTER;
-		}
-	}
+ //  /* Apply inner and outer temperature boundary conditions */
+	// if ( CPU_Rank == 0 ) {
+	// 	i = 0;
+	// 	for (j = 0; j < ns; j++) {
+	// 		l = j+i*ns;
+	// 		Tnew[l] = TINNER;
+	// 	}
+	// }
+	// if ( CPU_Rank == CPU_Highest ) {
+	// 	i = nr-1;
+	// 	for (j = 0; j < ns; j++) {
+	// 		l = j+i*ns;
+	// 		Tnew[l] = TOUTER;
+	// 	}
+	// }
 
   for (nstep = 0; nstep < FLDTimeStepsCFL; nstep++) {
   	for (i = One_or_active; i < MaxMO_or_active; i++) {
@@ -1126,6 +1130,13 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
 				T[l] = Tnew[l];
   		}
   	}
+  }
+
+  // Debug
+  if ( debug ) {
+  	int check_neg = 1;
+    int check_zero = 1;
+    CheckField(Temperature, check_neg, check_zero, "SubStep4 Explicit");
   }
 
   if ( RayTracingHeating ) {

@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : types.h
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:59
+	* @description     :
+*/
 #include <sys/times.h>
 
 typedef int     boolean;

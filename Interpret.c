@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : Interpret.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 14:56
+	* @description     :
+*/
 #include "mp.h"
 #define MAXVARIABLES 500
 
@@ -47,6 +54,7 @@ boolean         Write_OpticalDepths = NO;
 boolean         ExplicitRadTransport = NO;
 boolean         AnalyticCooling = NO;
 boolean         Constant_Opacity = NO;
+
 
 void var(name, ptr, type, necessary, deflt)
      char           *name;

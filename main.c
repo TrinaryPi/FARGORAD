@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : main.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:58
+	* @description     :
+*/
 #include "mp.h"
 
 boolean         TimeToWrite, Restart=NO, OpenInner=NO, BinaryOn=NO, DiscElem=NO, RadiationDebug=NO, PreInitialisation;
@@ -150,7 +157,7 @@ main(argc, argv)
     PrintUsage (argv[0]);
   }
   ReadVariables (ParameterFile);
-  
+
   if ( Restart == NO ) {
     EmptyTargetFolder();
   }
@@ -328,7 +335,6 @@ main(argc, argv)
     /* Hydrodynamical Part */
     /***********************/
     InitSpecificTime (Profiling, &t_Hydro, "Eulerian Hydro algorithms");
-    //printf ("Calling AlgoGas\n");
     AlgoGas (force, gas_density, gas_v_rad, gas_v_theta, gas_energy, gas_label, sys, bsys, gas_e_cell, TimeStep);
     GiveSpecificTime (Profiling, t_Hydro);
     if ( DiscElem ) {

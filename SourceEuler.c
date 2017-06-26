@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : SourceEuler.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:57
+	* @description     :
+*/
 #include "mp.h"
 
 #define CFLSECURITY 0.5		/* Maximum fraction of zone size */
@@ -336,47 +343,26 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     RotatePsys (sys, OmegaFrame*dt);
     /* Now we update gas */
     if ( IsDisk ) {
-      	ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
-      	Crashed = DetectCrash (Rho);    /* test for negative density values */
-      	Crashed = DetectCrash (Energy);  /* test for negative energy values */
-      	if ( Crashed ) {
-	      	if (AlreadyCrashed == 0) {
-	        	timeCRASH=PhysicalTime;   /* if it appears to be the first crash */
-	        	fprintf (stdout,"\nCrash! at time %.12g\n", timeCRASH);
-          	fprintf (stdout,"Crash at r = %f (ring %d) and azimuthal cell %d \n", Rmed[crash_i], crash_i, crash_j);
-          	prs_exit(1);
-	        	// WriteDiskPolar (Rho, 9999);    /* We write the HD arrays */
-	        	// WriteDiskPolar (Vrad, 9999);   /* in order to keep a track */
-	        	// WriteDiskPolar (Vtheta, 9999); /* of what happened */
-	        	// WriteDiskPolar (Temperature, 9999);
-         		//  merge(9999);
-	      	}	
-	      	AlreadyCrashed++;
-	      	masterprint ("c");
-      	} else {
-	      	masterprint (".");
-        }
-      
-     	  fflush (stdout);
-      	if ( ZMPlus ) {
-	      	compute_anisotropic_pressurecoeff (sys);
-        }
-
-      	ComputePressureField (Rho, Energy);
-		// if ( HydroOn ) {
-		//   if ( RadiativeOnly ) {
-		//     ActualiseGas (VradInt, Vrad);
-		//     ActualiseGas (VthetaInt, Vtheta);
-		//   } else {
-		//     SubStep1 (Vrad, Vtheta, Rho, dt);
-		//   }
-		//   SubStep2 (Rho, Energy, dt);
-		//   ActualiseGas (Vrad, VradNew);
-		//   ActualiseGas (Vtheta, VthetaNew);
-		//   ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
-		// } else {
-		//   ActualiseGas(EnergyInt, Energy);
-		// }
+      ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
+      Crashed = DetectCrash (Rho);	/* test for negative density values */
+      Crashed = DetectCrash (Energy);	/* test for negative energy values */
+      if ( Crashed ) {
+	      if (AlreadyCrashed == 0) {
+	        timeCRASH=PhysicalTime;	/* if it appears to be the first crash */
+	        fprintf (stdout,"\nCrash! at time %.12g\n", timeCRASH);
+          fprintf (stdout,"Crash at r = %f (ring %d) and azimuthal cell %d \n", Rmed[crash_i], crash_i, crash_j);
+          prs_exit(1);
+	      }
+	      AlreadyCrashed++;
+	      masterprint ("c");
+      } else {
+	      masterprint (".");
+      }
+     	fflush (stdout);
+     	if ( ZMPlus ) {
+	      compute_anisotropic_pressurecoeff (sys);
+	    }
+      ComputePressureField (Rho, Energy);
 
     	if ( HydroOn ) {
         SubStep1 (Vrad, Vtheta, Rho, dt);
@@ -411,8 +397,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         }
         ActualiseGas (Vrad, VradNew);
         ActualiseGas (Vtheta, VthetaNew);
-        	//new
-        	// ApplyFloor (Rho, EnergyInt);
       } else {
         ActualiseGas(EnergyInt, Energy);
         ActualiseGas(Vrad,VradInt);
@@ -429,47 +413,42 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           MPI_Allreduce (&radcooltimestepcfl, &dt_rc, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
           SubStep3_RadCool(Rho, EnergyNew, dt, dt_rc);
         }
-        
-        // new - modified layout so that RayTracingStep can be used without SOR FLD (06/01/2017)
         if (( RadTransport ) || ( RayTracingHeating )) {
           ComputeSoundSpeed (Rho, EnergyNew);
           ComputeDiscHeight (bsys);
           ComputeTemperatureField (Rho, EnergyNew);
           ComputeRKappa (Rho);
-          // Function for calculating the midplane stellar heating
-          	if ( RayTracingHeating ) {
-            	ComputeRayTracingHeating(Rho, bsys);
-            }
-
-          	if (( !RadTransport) && ( ExplicitRayTracingHeating )) {
-            	SubStep4_Explicit_Irr(Rho, EnergyNew, dt);
-            } else {
-            	SubStep4 (Rho, EnergyNew, dt);
-            }
-        	}
-	      	ActualiseGas (Energy, EnergyNew);
-        	// ApplyFloor (Rho, Energy);
+          if ( RayTracingHeating ) {
+          	/* Function for calculating the midplane stellar heating */
+            ComputeRayTracingHeating(Rho, bsys);
+          }
+          if (( !RadTransport) && ( ExplicitRayTracingHeating )) {
+            SubStep4_Explicit_Irr(Rho, EnergyNew, dt);
+          } else {
+            SubStep4 (Rho, EnergyNew, dt);
+          }
+        }
+	      ActualiseGas (Energy, EnergyNew);
+      }
+      if ( HydroOn ) {
+        Transport (Rho, Vrad, Vtheta, Energy, Label, dt);
+      }
+      if ( debug ) {
+      	int check_neg = 0;
+      	int check_zero = 0;
+      	CheckField(Vrad, check_neg, check_zero, "Transport");
+      	CheckField(Vtheta, check_neg, check_zero, "Transport");
+      	check_neg = 1;
+      	check_zero = 1;
+      	CheckField(Rho, check_neg, check_zero, "Transport");
+      	if ( Adiabatic ) {
+      		CheckField(Energy, check_neg, check_zero, "Transport");
       	}
-
-      	if ( HydroOn ) {
-        	Transport (Rho, Vrad, Vtheta, Energy, Label, dt);
-        }
-
-        if ( debug ) {
-        	int check_neg = 0;
-        	int check_zero = 0;
-        	CheckField(Vrad, check_neg, check_zero, "Transport");
-        	CheckField(Vtheta, check_neg, check_zero, "Transport");
-        	check_neg = 1;
-        	check_zero = 1;
-        	CheckField(Rho, check_neg, check_zero, "Transport");
-        	if ( Adiabatic )
-        		CheckField(Energy, check_neg, check_zero, "Transport");
-        }
-      	ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
-      	ComputeTemperatureField (Rho, Energy);
-      	mdcp = CircumPlanetaryMass (Rho, sys);
-      	exces_mdcp = mdcp - mdcp0;
+      }
+      ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
+      ComputeTemperatureField (Rho, Energy);
+      mdcp = CircumPlanetaryMass (Rho, sys);
+      exces_mdcp = mdcp - mdcp0;
     }
     PhysicalTime += dt;
     timestep_counter++;
@@ -656,9 +635,9 @@ void SubStep3 (Rho, dt)
   extern boolean Cooling;
   int i, j, l, nr, ns;
   real *dens, *pres, *energy, *energynew;
-  real *divergence, *qplus, *qirr;
+  real *divergence, *qplus, *qirr, *qdiv;
   real energypred, pressurepred, num, den;
-  real qirr_temp = 0.0, div_temp = 0.0, *qdiv;
+  real qirr_temp = 0.0, div_temp = 0.0;
 
   // Assignment
   nr = Rho->Nrad;
@@ -1379,7 +1358,7 @@ void ComputeQterms (Rho, Vrad, Vtheta, Energy, bsys)
   BinarySystem *bsys;
 {
   // Function
-  if (( Irradiation ) || ( RadTransport )) {
+  if (( Irradiation ) || ( RadTransport ) || ( RadCooling )) {
     ComputeDiscHeight (bsys);
     ComputeTemperatureField (Rho, EnergyInt);
     ComputeRKappa (Rho);
@@ -1437,7 +1416,6 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
       temperature[l] = energy[l]/densitycv[l];
     }
   }
-
   /* Evolve temperature field with analytical cooling term */
   if ( AnalyticCooling ) {
     for (i = 0; i < nr; i++) {
@@ -1458,11 +1436,9 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
       dt = dt_energy;
       dt_remainder = dt_hydro - (real)(RadCoolTimeStepsCFL*dt_energy);
     }
-
     dt_hydro_av += dt_hydro;
     dt_energy_av += dt_energy;
     nsteps_av += RadCoolTimeStepsCFL;
-
     /* Carry out RadCoolTimeStepsCFL sub-cycles, with timestep dt */
     for (nstep = 0; nstep < RadCoolTimeStepsCFL; nstep++) {
   #pragma omp parallel for private(j, l)
@@ -1473,14 +1449,11 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
           temperature[l] -= dt*qminus[l]/densitycv[l];
         }
       }
-
       /* Update Rosseland Mean Opacity with new temperature */
       ComputeRKappa(Rho);
-
       /* Calculate new local radiative cooling */
       ComputeQminus(Rho);
     }
-
     /* Update temperature to time level n+1 with last dt_remainder timestep */
     if ( dt_remainder > 0.0 ) {
   #pragma omp parallel for private(j, l)
@@ -1499,8 +1472,8 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
       energy[l] = temperature[l]*densitycv[l];
     }
   }
-  
   free(densitycv);
+
   // Debug
   if ( debug ) {
     int check_zero = 1;

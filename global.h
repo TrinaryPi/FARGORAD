@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : global.h
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:58
+	* @description     :
+*/
 int CPU_Rank;
 int CPU_Number;
 boolean CPU_Master;

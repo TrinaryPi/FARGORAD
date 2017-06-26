@@ -1,10 +1,19 @@
+/* C Header
+	* @filename        : InitRadiation.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 13:32
+	* @description     :
+*/
 #include "mp.h"
+#include "radiation.h"
 
-extern boolean RadCooling, Irradiation, RadTransport, VarDiscHeight, BinaryOn, OptimalOmega, ChebyshevOmega;
-extern boolean Relative_Diff, Residual_Diff, Relative_Max, Residual_Max;
-extern boolean LinPap1985_Opacity, BellLin1994_Opacity, PowerLaw_Opacity;
-extern boolean RayTracingHeating, ExplicitRayTracingHeating, Adiabatic, HydroOn, RadiativeOnly, Cooling, CustomCooling;
-extern boolean	ExplicitRadTransport;
+extern boolean BinaryOn;
+extern boolean Adiabatic;
+extern boolean HydroOn;
+extern boolean RadiativeOnly;
+extern boolean Cooling;
+extern boolean CustomCooling;
 
 void InitialiseRadiationModule(density, bsys)
 	// Input
@@ -123,8 +132,9 @@ IrradiationSource *InitIrradiationSources(filename, ns)
   		s1 = s + strlen(nm);
   		sscanf(s1 + strspn(s1, "\t :=>_"), "%f %f %s", &rstar, &tstar, test1);
     	centralsource = YES;
-    	if ( tolower(*test1) == 'n' )
+    	if ( tolower(*test1) == 'n' ) {
     		centralsource = NO;  
+    	}
     	rs[i] = (real)rstar;
     	ts[i] = (real)tstar/constant;
     	IrrSources->CentralSource[i] = centralsource;
@@ -211,10 +221,10 @@ void InitRadTransport ()
 	real dx, dy, dxdy2, min, max, MINom, MAXom;
 
 	// Constants
-	max = 1;
-	min = 2;
+	max = 1.0;
+	min = 2.0;
 	J = GLOBALNRAD;
-	dy = 2*PI/(real)NSEC;
+	dy = 2.0*PI/(real)NSEC;
 	
 	// Function/Output
 	masterprint("Initialising the Radiation Transport Module...\n");
@@ -227,10 +237,12 @@ void InitRadTransport ()
 			dxdy2 = dx*dx/dy/dy;
 			rhoJac[i] = (cos(2.0*(real)PI/(real)J) + dxdy2*cos(dy))/(1.0+dxdy2);
 			omegaOpt[i] = 2.0/(1.0+sqrt(1.0-rhoJac[i]*rhoJac[i]));
-			if ( omegaOpt[i] > max )
+			if ( omegaOpt[i] > max ) {
 				max = omegaOpt[i];
-			if ( omegaOpt[i] < min )
+			}
+			if ( omegaOpt[i] < min ) {
 				min = omegaOpt[i];
+			}
 		}
 		MPI_Allreduce(&min, &MINom, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );
 		MPI_Allreduce(&max, &MAXom, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );

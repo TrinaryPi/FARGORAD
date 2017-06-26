@@ -268,7 +268,7 @@ seqfftw:
 $(AUTOINCL) : var.c global.h makefile varparser.pl
 	@./varparser.pl
 
-$(OBJ): mp.h fondam.h param.h param_noex.h types.h makefile
+$(OBJ): mp.h fondam.h param.h param_noex.h radiation.h types.h makefile
 
 .PHONY: clean mrproper package
 

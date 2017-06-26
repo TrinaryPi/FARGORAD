@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : sgkernel.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:59
+	* @description     :
+*/
 #include "mp.h"
 
 void compute_fftkernel ()

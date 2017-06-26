@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : Init.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 14:56
+	* @description     :
+*/
 #include "mp.h"
 
 extern boolean Restart;
@@ -17,7 +24,7 @@ void ReadfromFile (array, fileprefix, filenumber)
      give wrong results. */
   /* A sequential reading is imposed below. */
   /* If current CPU has a predecessor, wait for a message from him */
-  if (CPU_Rank > 0) {
+  if ( CPU_Rank > 0 ) {
     MPI_Recv(&foo, 1, MPI_INT, CPU_Prev, 10, MPI_COMM_WORLD, &stat);
   }
   sprintf (name, "%s%s%d.dat", OUTPUTDIR, fileprefix, filenumber);
@@ -40,7 +47,9 @@ void ReadfromFile (array, fileprefix, filenumber)
   fclose (input);
   /* Next CPU is waiting. Tell it to start now by sending the message
      that it expects */
-  if (CPU_Rank < CPU_Highest) MPI_Send(&foo, 1, MPI_INT, CPU_Next, 10, MPI_COMM_WORLD);
+  if ( CPU_Rank < CPU_Highest ) {
+    MPI_Send(&foo, 1, MPI_INT, CPU_Next, 10, MPI_COMM_WORLD);
+  }
   MPI_Barrier (MPI_COMM_WORLD);	/* previous CPUs do not touch anything meanwhile */
 }
 

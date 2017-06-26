@@ -1,4 +1,28 @@
+/* C Header
+	* @filename        : DebugTools.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 13:30
+	* @description     :
+*/
 #include "mp.h"
+#include "radiation.h"
+
+extern boolean PreInitialisation;
+extern boolean Cooling;
+extern boolean CustomCooling;
+extern boolean Adiabatic;
+extern boolean DiscMassTaper;
+extern boolean TempInit;
+extern boolean SelfGravity;
+extern boolean SGZeroMode;
+extern boolean ZMPlus;
+extern boolean FastTransport;
+extern boolean IsDisk;
+extern boolean HydroOn;
+extern boolean NoCFL;
+extern boolean RadiativeOnly;
+
 
 void CheckField(testField, checkNegative, checkZero, note_string)
 	// Input
@@ -64,6 +88,7 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 	}
 }
 
+
 int CheckValue(Value, checkNegative, checkZero)
 	// Input
 	real Value;
@@ -91,16 +116,10 @@ int CheckValue(Value, checkNegative, checkZero)
 	return flag;
 }
 
+
 void PrintBooleanUsage()
 	// Input N/A
 {
-	// Declaration
-	extern boolean RadCooling, Irradiation, RadTransport, RayTracingHeating, ExplicitRayTracingHeating, Cooling, CustomCooling;
-	extern boolean VarDiscHeight, BinaryOn, Adiabatic, DiscMassTaper, TempInit;
-	extern boolean SelfGravity, SGZeroMode, ZMPlus;
-	extern boolean FastTransport, IsDisk, HydroOn, NoCFL, RadiativeOnly;
-	extern boolean RadiationDebug, ViscosityAlpha;
-
 	// Function (and Output)
 	if ( CPU_Rank == 0 ) {
 		printf("Adiabatic Equation of State     : %s\n", Adiabatic ? "YES" : "NO");
@@ -128,12 +147,11 @@ void PrintBooleanUsage()
 	}
 }
 
+
 void DumpRadiationFields(Field)
+	// Input
 	PolarGrid *Field;
 {
-	// Declaration
-	extern boolean RadCooling, Irradiation, RayTracingHeating, RadTransport, VarDiscHeight, PreInitialisation;
-
 	// Function (and Output)
 	if ( PreInitialisation == NO ) {
 		if ( RadCooling ) {

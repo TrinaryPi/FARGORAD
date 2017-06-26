@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : rebin.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:59
+	* @description     :
+*/
 #include "mp.h"
 
 static real OldRadii[MAX1D], OldRmed[MAX1D], New_r[MAX1D];

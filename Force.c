@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : Force.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:57
+	* @description     :
+*/
 #include "mp.h"
 
 extern boolean OpenInner, NonReflecting;
@@ -203,13 +210,13 @@ void UpdateLog (fc, psys, Rho, Energy, outputnb, time, dimfxy)
         fprintf (stderr, "Aborted.\n");
       }
       fprintf (out, "%d\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\n", outputnb, \
-        x*fc->fy_inner-y*fc->fx_inner,				\
-        x*fc->fy_outer-y*fc->fx_outer,				\
-        x*fc->fy_ex_inner-y*fc->fx_ex_inner,			\
-        x*fc->fy_ex_outer-y*fc->fx_ex_outer,			\
-        vx*fc->fx_inner+vy*fc->fy_inner,				\
-        vx*fc->fx_outer+vy*fc->fy_outer,				\
-        vx*fc->fx_ex_inner+vy*fc->fy_ex_inner,			\
+        x*fc->fy_inner-y*fc->fx_inner, \
+        x*fc->fy_outer-y*fc->fx_outer, \
+        x*fc->fy_ex_inner-y*fc->fx_ex_inner, \
+        x*fc->fy_ex_outer-y*fc->fx_ex_outer, \
+        vx*fc->fx_inner+vy*fc->fy_inner, \
+        vx*fc->fx_outer+vy*fc->fy_outer, \
+        vx*fc->fx_ex_inner+vy*fc->fy_ex_inner, \
         vx*fc->fx_ex_outer+vy*fc->fy_ex_outer, time);
       fclose (out);
       if ( SGZeroMode || !SelfGravity ) {
@@ -221,8 +228,8 @@ void UpdateLog (fc, psys, Rho, Energy, outputnb, time, dimfxy)
             fprintf (stderr, "Aborted.\n");
           }
           fprintf (out, "%d\t%.18g\t%.18g\t%.18g\t%.18g\t%.18g\n", outputnb, \
-            x*globalforce[2*dimfxy+k]-y*globalforce[k],		\
-            x*globalforce[3*dimfxy+k]-y*globalforce[dimfxy+k],	\
+            x*globalforce[2*dimfxy+k]-y*globalforce[k], \
+            x*globalforce[3*dimfxy+k]-y*globalforce[dimfxy+k], \
             vx*globalforce[k]+vy*globalforce[2*dimfxy+k],	\
             vx*globalforce[dimfxy+k]+vy*globalforce[3*dimfxy+k], time);
           fclose (out);

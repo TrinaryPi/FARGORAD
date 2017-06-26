@@ -1,6 +1,12 @@
+/* C Header
+	* @filename        : Opacity.c
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:57
+	* @description     :
+*/
 #include "mp.h"
-
-extern boolean LinPap1985_Opacity, BellLin1994_Opacity, PowerLaw_Opacity, Constant_Opacity, OpacitySmoothing;
+#include "radiation.h"
 
 void InitRosselandOpacity()
 	// Input N/A

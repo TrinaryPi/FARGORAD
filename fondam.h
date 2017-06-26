@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : fondam.h
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:58
+	* @description     :
+*/
 #define		G	1.0
 #define	      PI4	12.56637061435917295376
 #define	       PI	3.14159265358979323844

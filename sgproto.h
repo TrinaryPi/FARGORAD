@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : sgproto.h
+	* @author          : Matthew Mutter (trinarypi)
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/26 16:59
+	* @description     :
+*/
 void compute_selfgravity ();
 void init_sg ();
 void compute_fftdensity ();
