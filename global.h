@@ -69,3 +69,4 @@ real DiffRsup[MAX1D], GlobalTheta[MAX1D];
 
 PolarGrid *QDiv, *TempSourcesSinks, *OpticalDepth, *OpticalDepthEff, *lambdafld;
 PolarGrid *TempGuess, *TempGuess_old, *Density;
+int FLDTimeStepsCFL;

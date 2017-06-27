@@ -136,7 +136,7 @@ OpacTable *InitOpacTable ()
 		exponent[4] = 0.0476190;
 		exponent[5] = 0.0535354;
 	}
-	if ( BellLin1994_Opacity) {
+	if ( BellLin1994_Opacity ) {
 		kappa0[0] = 2.0E-4;		//	#1
 		kappa0[1] = 2.0E16;		//	#2
 		kappa0[2] = 0.1;		//	#3

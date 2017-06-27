@@ -1,6 +1,6 @@
 /* C Header
 	* @filename        : Init.c
-	* @author          : Matthew Mutter (trinarypi)
+	* @author          : Frederic Masset
 	* @last_modified_by: trinarypi
 	* @last_modified   : 2017/06/26 14:56
 	* @description     :

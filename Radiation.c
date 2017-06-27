@@ -2,19 +2,18 @@
 	* @filename        : Radiation.c
 	* @author          : Matthew Mutter (trinarypi)
 	* @last_modified_by: trinarypi
-	* @last_modified   : 2017/06/26 16:57
+	* @last_modified   : 2017/06/27 12:22
 	* @description     :
 */
 #include "mp.h"
 #include "radiation.h"
+#define LITTLE_NUMBER_FIX 1.0E-15
 
-#define LITTLE_NUMBER_FIX  1.0E-15
 
 extern boolean BinaryOn;
 extern boolean NoCFL, RadiationDebug;
 extern real StarTaper;
 
-static int toggle_qirrrt = 0;
 
 void ComputeDiscHeight (bsys)
 	// Input
@@ -54,8 +53,8 @@ void ComputeDiscHeight (bsys)
 					height[l] = 0.0;
 					for (s = 0; s < nb; s++) {
 						/* Add a smoothing length to cell-binary distance, to avoid singularities */
-						// smooth = (0.49*pow(q[s], 2.0/3.0))/(0.6*pow(q[s], 2.0/3.0) + log(1.0 + pow(q[s], 1.0/3.0)))*A;
-						// smooth *= smooth;
+						smooth = (0.49*pow(q[s], 2.0/3.0))/(0.6*pow(q[s], 2.0/3.0) + log(1.0 + pow(q[s], 1.0/3.0)))*A;
+						smooth *= smooth;
 						smooth = 0.0;
 						dist = (xc - xstar[s])*(xc -xstar[s]) + (yc - ystar[s])*(yc - ystar[s]);
 						dist_smooth = sqrt(dist + smooth);
@@ -96,6 +95,7 @@ void ComputeDiscHeight (bsys)
 	}
 }
 
+
 real compute_varheight_smoothing (xp, yp)
 	// Input
 	real xp, yp;
@@ -130,6 +130,7 @@ real compute_varheight_smoothing (xp, yp)
 	// Output
 	return smoothing;
 }
+
 
 real compute_aspectratio (x, y)
 	// Input
@@ -191,6 +192,7 @@ real compute_aspectratio (x, y)
 	return HoverR;
 }
 
+
 void ComputeQirr (Sigma, bsys)
 	// Input
 	PolarGrid *Sigma;
@@ -211,15 +213,15 @@ void ComputeQirr (Sigma, bsys)
 	dens = Sigma->Field;
 	H = DiscHeight->Field;
 	rkappa = RKappaval->Field;
+	qirr = Qirr->Field;
+	tau = OpticalDepth->Field;
+	taueff = OpticalDepthEff->Field;
 	nb = IrrSources->nb;
 	Rs = IrrSources->Rstar;
 	Tstar = IrrSources->Tstar;
 	central_source = IrrSources->CentralSource;
-	qirr = Qirr->Field;
 	xs = bsys->x;
 	ys = bsys->y;
-	tau = OpticalDepth->Field;
-	taueff = OpticalDepthEff->Field;
 
 	// Constants
 	disc_albedo = 0.5;
@@ -267,6 +269,7 @@ void ComputeQirr (Sigma, bsys)
 	}
 }
 
+
 void ComputeQminus (Sigma)
 	// Input
 	PolarGrid *Sigma;
@@ -310,53 +313,6 @@ void ComputeQminus (Sigma)
 		CheckField(Qminus, check_neg, check_zero, "ComputeQminus");
 	}
 }
-
-
-// void ToggleQirrRT (gas_density, dt)
-// 	// Input
-// 	PolarGrid *gas_density;
-// 	real dt;
-// {	
-// 	// Declaration
-// 	int i, j, l, ns, nr;
-// 	real *sigma, *QRT, cvfac, I;
-
-// 	// Assignment
-// 	sigma = gas_density->Field;
-// 	QRT = QirrRT->Field;
-// 	nr = gas_density->Nrad;
-// 	ns = gas_density->Nsec;
-
-// 	// Constants
-// 	cvfac = dt/CV;
-
-// 	// Function
-// 	for (i = 0; i < nr; i++) {
-// 		for (j = 0; j < ns; j++) {
-// 			l = j+i*ns;
-// 			I = cvfac/sigma[l];
-// 			if ( QRT[l] != 0.0 ) {
-// 				if ( toggle_qirrrt )
-// 					QRT[l] /= I;
-// 				else
-// 					QRT[l] *= I;
-// 			}
-// 		}
-// 	}
-
-// 	if ( toggle_qirrrt ) {
-// 		toggle_qirrrt = 0;
-// 	} else {
-// 		toggle_qirrrt = 1;
-// 	}
-
-// 	// Debug
-//  	if ( RadiationDebug ) {
-//  		int check_neg = 1;
-//     int check_zero = 0;
-//  		CheckField(QirrRT, check_neg, check_zero, "ToggleQirrRT");
-//  	}
-// }
 
 
 void ComputeNewEnergyField(gas_density, gas_energy)

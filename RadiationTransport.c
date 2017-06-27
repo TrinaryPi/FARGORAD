@@ -8,8 +8,9 @@
 #include "mp.h"
 #include "radiation.h"
 
-static real NormAv = 0;
-static int IterAv = 0, counter = 1;
+static real NormAv=0;
+static int IterAv=0, counter=1;
+extern int FLDTimeStepsCFL;
 
 void SubStep4 (gas_density, gas_energynew, timestep)
 	// Input
@@ -23,7 +24,7 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 	int iteration;
 	real *T, *Tguess, *Tguess_old;
 	real *B, *U1, *U2, *U3, *U4, *residual, *Rij;
-	real qirrrt = 0.0, qirr = 0.0;
+	real qirrrt=0.0, qirr=0.0;
 	real norm_tmp[2], norm, cvfac, tol;
 
 	// Assignment
@@ -182,7 +183,6 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 	 					} else {
 	  					ljm = l-1;
 	  				}
-	  
 		  			if ( j == ns-1 ) {
 		  				ljp = i*ns;
 		  			} else {
@@ -346,6 +346,10 @@ void ComputeRadTransCoeffs(gas_density, dt)
 			}
 	
 			D[l] = 4.0*STEFANK*lambda[l]*pow(T[l], 3.0)/(rho*kappa[l]);
+			if ( D[l] < 0.0 ) {
+				printf("D negative @ CPU_%d, i = %d, j = %d, lambda[l] = %g, rho[l] = %g\n", CPU_Rank, i, j, lambda[l], rho);
+				printf("T[l]^3 = %g, kappa[l] = %g, STEFANK = %g\n", pow(T[l], 3.0), kappa[l], STEFANK);
+			}
 		}
 	}
 
@@ -471,24 +475,24 @@ real FLDConditionCFL()
 	// Declaration
 	int i, j, l, ns;
 	real *D;
-	real old_dt, new_dt = 1.0E30, factor;
+	real old_dt, new_dt=1.0E30, factor;
 
 	// Assignment
 	ns = Darr->Nsec;
 	D  = Darr->Field;
 
 	// Constants
-	factor = 0.01;
+	factor = 0.1;
 
 	// Function
 	for (i = One_or_active; i < MaxMO_or_active; i++) {
 		for (j = 0; j < ns; j++) {
 			l = j + i*ns;
-			old_dt = factor*DiffRsup[i]*DiffRsup[i]/D[l];
+			old_dt = factor*DiffRsup[i]*DiffRsup[i]/fabs(D[l]);
 			if ( old_dt < new_dt ) {
 				new_dt = old_dt;
 			}
-			old_dt = factor*Rmed[i]*Rmed[i]*DTHETA*DTHETA/D[l];
+			old_dt = factor*Rmed[i]*Rmed[i]*DTHETA*DTHETA/fabs(D[l]);
 			if ( old_dt < new_dt ) {
 				new_dt = old_dt;
 			}
@@ -509,13 +513,13 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
 	int i, j, l, nr, ns, nstep;
 	int im, ip, jm, jp;
 	int lim, lip, ljm, ljp;
-	int FLDTimeStepsCFL;
 	real *density, *T, *energy, *Tnew, *Qirrrt;
 	real *U1, *U2, *U3, *U4;
 	real U1T, U2T, U3T, U4T, CT;
 	real dt_FLD, dt_fld, dt, dt_remainder;
 
 	// Assignment
+	char str[256];
 	nr = gas_density->Nrad;
 	ns = gas_density->Nsec;
 	density = gas_density->Field;
@@ -580,6 +584,12 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
   			l = j+i*ns;
 				T[l] = Tnew[l];
   		}
+  	}
+  	if ( debug ) {
+  		int check_neg = 1;
+    	int check_zero = 1;
+    	sprintf(str, "SubStep4 Explicit after sub-cycle %d", nstep);
+    	CheckField(Temperature, check_neg, check_zero, str);
   	}
   	ComputeRKappa(gas_density);
   	ComputeRadTransCoeffs(gas_density, timestep);

@@ -2,20 +2,21 @@
 	* @filename        : RayTracing.c
 	* @author          : Matthew Mutter (trinarypi)
 	* @last_modified_by: trinarypi
-	* @last_modified   : 2017/06/26 16:57
+	* @last_modified   : 2017/06/27 11:59
 	* @description     :
 */
 #include "mp.h"
 #include "radiation.h"
 
+
 extern real StarTaper;
 extern boolean RadiationDebug;
-
 static real *SendInnerBoundary;
 static real *SendOuterBoundary;
 static real *RecvInnerBoundary;
 static real *RecvOuterBoundary;
 static int allocated_radcomm = 0, allocated_globalfields = 0;
+
 
 void InitRayTracing ()
 	// Input N/A
@@ -33,7 +34,7 @@ void InitRayTracing ()
 	masterprint("Initialising parameters for RT irradiative heating...");
 	if ( nstar > 1 ) {
 		masterprint("two sources found...\n");
-		if ( CPU_Rank == 0) {
+		if ( CPU_Rank == 0 ) {
 			ray = AllocRayStructure();
 			InitRayStructure(0.0, 0.0);
 			PrintRayInfo();
@@ -47,6 +48,7 @@ void InitRayTracing ()
 
 }
 
+
 void InitRayStructure (xstart, ystart)
 	//Input
 	real xstart;
@@ -54,12 +56,6 @@ void InitRayStructure (xstart, ystart)
 {
 	// Declaration
 	real x[2]={0.0}, y[2]={0.0};
-	// real x0, y0;
-
-	// x0 = ray->x;
-	// y0 = ray->y;
-	// x0 = xstart;
-	// y0 = ystart;
 
 	// Function
 	ray->x = xstart;
@@ -120,6 +116,7 @@ void ComputeRayTracingHeating (gas_density, bsys)
 	}
 }
 
+
 void ComputeBinarySourceRT (gas_density, bsys)
 	// Input
 	PolarGrid *gas_density;
@@ -164,7 +161,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	Tstar 		= IrrSources->Tstar;
 	xb			= bsys->x;
 	yb			= bsys->y;
-
 	/* Allocate memory for global Sigma, Kappa_R, Height, Temperature (four-fields)
 	and Q_irr^RT fields */
 	if (( CPU_Rank == 0 ) && ( allocated_globalfields == 0 )) {
@@ -180,7 +176,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	ffas = 4*active_size;
 
 	// Function
-
 	/* Gather array and four-field array sizes onto root */
 	if ( CPU_Rank == 0 ) {
 		continue_in_i = (int *)malloc(sizeof(int)* ns);
@@ -357,8 +352,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 						/* update tau from previous values of tau and delta tau */
 						ray->tau += ray->dtau;
-
-						if (( ray->tau > TAUCEILING ) && (GlobalRmed[i] >= rb)) {
+						if (( ray->tau > TAUCEILING ) || ( GlobalRmed[i] >= rb )) {
 							ray->diff = 0;
 							ray->env = -1;
 							continue_in_i[j] = 0;
@@ -441,7 +435,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 								}
 							}
 						}
-
 						if (( Ray_sigma == 0.0 ) || ( Ray_height == 0.0 ) || ( Ray_temperature == 0.0 ) || ( Ray_rkappa == 0.0 )) {
 							ray->dtau = 0.0;
 						} else {
@@ -449,12 +442,10 @@ void ComputeBinarySourceRT (gas_density, bsys)
 							skappa = ComputeSkappa(Ray_sigma, Ray_rkappa, Ray_temperature, Tstar[s]);
 							ray->dtau = rho*skappa*ray->dr;
 						}
-
-						if (ray->env > 1) {
+						if ( ray->env > 1 ) {
 							ray->env = ray->env - 1;
 						}
 					}
-
 					term = ComputeQRT(starcons, ray->length, ray->tau, ray->dtau, ray->dr, ray->env);
           Global_qrt[l] = Global_qrt[l]+term;
 				}
@@ -520,14 +511,11 @@ int CircleLineProjection(xi, yi, xc, yc, Rc)
 	seg_vx = xi - x;
 	seg_vy = yi - y;
 	seg_v = hypot(seg_vx, seg_vy);
-
 	pt_vx = xc - x;
 	pt_vy = yc - y;
-
 	proj_v = (pt_vx*seg_vx/seg_v) + (pt_vy*seg_vy/seg_v);
 	proj_vx = proj_v*seg_vx/seg_v;
 	proj_vy = proj_v*seg_vy/seg_v;
-
 	if ( proj_v <= 0 ) {
 		closest_x = x;
 		closest_y = y;
@@ -538,11 +526,9 @@ int CircleLineProjection(xi, yi, xc, yc, Rc)
 		closest_x = x + proj_vx;
 		closest_y = y + proj_vy;
 	}
-
 	dist_vx = xc - closest_x;
 	dist_vy = yc - closest_y;
 	dist_v = hypot(dist_vx, dist_vy);
-
 	if ( dist_v <= Rc ) {
 		// Output
 		return 1; /* Line Segment between start of ray and target cell intersects radius of other star */
@@ -613,10 +599,8 @@ void IterateRay(dx, dy, dray, xi, yi)
 		ray->r = RMIN;
 		ray->th = atan3(ray->y, ray->x);
 		ray->env = 3;
-
 		return;
 	}
-
 	ray->x = xtemp;
 	ray->y = ytemp;
 	ray->dx = dx;
@@ -627,8 +611,6 @@ void IterateRay(dx, dy, dray, xi, yi)
 	ray->diff = hypot((xi - ray->x), (yi - ray->y));
 	ray->length += ray->dr;
 	ray->env = 1;
-
-	return;
 }
 
 void CircleLineIntersection(xi, yi, Rc)
@@ -656,7 +638,7 @@ void CircleLineIntersection(xi, yi, Rc)
 	memset(ray->y_int, 0.0, 2*sizeof(real));
 	ray->n_int = 0;
 	
-	if (discriminant > 0) {
+	if ( discriminant > 0 ) {
 		sgn_dx = sign2(dx);
 		sgn_dy = sign2(dy);
 		abs_dy = fabs(dy);
@@ -668,7 +650,7 @@ void CircleLineIntersection(xi, yi, Rc)
 		xint[1] = (D*dy - sgn_dy*dx*discriminant)/dr2;
 		yint[1] = (-D*dx - abs_dy*discriminant)/dr2;
 
-		if (ray->r < Rc) {
+		if ( ray->r < Rc ) {
 			if ( sgn_dx == sign2(xint[0]-ray->x) ) {
 				ray->x_int[0] = xint[0];
 			} else {
@@ -694,7 +676,7 @@ void CircleLineIntersection(xi, yi, Rc)
 					ray->x_int[0] = xint[1];
 				}
 			}
-			if (dy == 0) {
+			if ( dy == 0 ) {
 				// ray->y_int = yint;
 				memcpy(ray->y_int, yint, 2*sizeof(real));
 			} else {
@@ -709,9 +691,6 @@ void CircleLineIntersection(xi, yi, Rc)
 			ray->n_int = 2;
 		}
 	}
-
-	// Output
-	return;
 }
 
 void ComputeSingleSourceRT (gas_density)
@@ -848,7 +827,7 @@ void ComputeSingleSourceRT (gas_density)
 	// Debug
  	if ( RadiationDebug ) {
  		int check_neg = 1;
-    	int check_zero = 0;
+    int check_zero = 0;
  		CheckField(Tau_cell, check_neg, check_zero, "ComputeSingleSourceRT");
  		CheckField(Tau_grid, check_neg, check_zero, "ComputeSingleSourceRT");
  		CheckField(QirrRT, check_neg, check_zero, "ComputeSingleSourceRT");
@@ -865,10 +844,10 @@ void AllocateGlobalFields ()
 	Global_temperature = (real *)malloc (global_real_size);
 	Global_qrt = (real *)malloc (global_real_size);
 
-	if (( Global_sigma       == NULL )||\
-	  	( Global_rkappa      == NULL )||\
-	  	( Global_height      == NULL )||\
-	  	( Global_temperature == NULL )||\
+	if (( Global_sigma       == NULL ) || \
+	  	( Global_rkappa      == NULL ) || \
+	  	( Global_height      == NULL ) || \
+	  	( Global_temperature == NULL ) || \
 	  	( Global_qrt         == NULL )) {
 		fprintf (stderr, "CPU %d didn't have enough memory to allocate global fields.\n", CPU_Rank);
 		prs_exit(0);
@@ -891,9 +870,9 @@ void AllocateRadComm ()
 	RecvInnerBoundary = malloc (size_com * sizeof(real));
 	RecvOuterBoundary = malloc (size_com * sizeof(real));
 
-	if (( SendInnerBoundary == NULL )||\
-	  	( SendOuterBoundary == NULL )||\
-	  	( RecvInnerBoundary == NULL )||\
+	if (( SendInnerBoundary == NULL ) || \
+	  	( SendOuterBoundary == NULL ) || \
+	  	( RecvInnerBoundary == NULL ) || \
 	  	( RecvOuterBoundary == NULL )) {
 		fprintf (stderr, "CPU %d didn't have enough memory to allocate communicators.\n", CPU_Rank);
 		prs_exit(0);
@@ -926,33 +905,33 @@ void CommunicateFieldBoundaries (field)
 	memcpy (SendInnerBoundary, field->Field+l, l*sizeof(real));
 	memcpy (SendOuterBoundary, field->Field+o, l*sizeof(real));
 	if ( CPU_Rank%2 == 0 ) {
-	if ( CPU_Rank > 0 ) {
-	  MPI_Isend (SendInnerBoundary, size_com, MPI_DOUBLE, CPU_Prev, 0, MPI_COMM_WORLD, &req1);
-	  MPI_Irecv (RecvInnerBoundary, size_com, MPI_DOUBLE, CPU_Prev, 0, MPI_COMM_WORLD, &req2);
-	}
-	if ( CPU_Rank != CPU_Highest ) {
-	  MPI_Isend (SendOuterBoundary, size_com, MPI_DOUBLE, CPU_Next, 0, MPI_COMM_WORLD, &req3);
-	  MPI_Irecv (RecvOuterBoundary, size_com, MPI_DOUBLE, CPU_Next, 0, MPI_COMM_WORLD, &req4);
-	}
+		if ( CPU_Rank > 0 ) {
+	  	MPI_Isend (SendInnerBoundary, size_com, MPI_DOUBLE, CPU_Prev, 0, MPI_COMM_WORLD, &req1);
+	  	MPI_Irecv (RecvInnerBoundary, size_com, MPI_DOUBLE, CPU_Prev, 0, MPI_COMM_WORLD, &req2);
+		}
+		if ( CPU_Rank != CPU_Highest ) {
+	  	MPI_Isend (SendOuterBoundary, size_com, MPI_DOUBLE, CPU_Next, 0, MPI_COMM_WORLD, &req3);
+	  	MPI_Irecv (RecvOuterBoundary, size_com, MPI_DOUBLE, CPU_Next, 0, MPI_COMM_WORLD, &req4);
+		}
 	} else {
-	if ( CPU_Rank != CPU_Highest ) {
-	  MPI_Irecv (RecvOuterBoundary, size_com, MPI_DOUBLE, CPU_Next, 0, MPI_COMM_WORLD, &req3);
-	  MPI_Isend (SendOuterBoundary, size_com, MPI_DOUBLE, CPU_Next, 0, MPI_COMM_WORLD, &req4);
+		if ( CPU_Rank != CPU_Highest ) {
+	  	MPI_Irecv (RecvOuterBoundary, size_com, MPI_DOUBLE, CPU_Next, 0, MPI_COMM_WORLD, &req3);
+	  	MPI_Isend (SendOuterBoundary, size_com, MPI_DOUBLE, CPU_Next, 0, MPI_COMM_WORLD, &req4);
+		}
+		if ( CPU_Rank > 0 ) {
+	  	MPI_Irecv (RecvInnerBoundary, size_com, MPI_DOUBLE, CPU_Prev, 0, MPI_COMM_WORLD, &req1);
+	  	MPI_Isend (SendInnerBoundary, size_com, MPI_DOUBLE, CPU_Prev, 0, MPI_COMM_WORLD, &req2);
+		}
 	}
 	if ( CPU_Rank > 0 ) {
-	  MPI_Irecv (RecvInnerBoundary, size_com, MPI_DOUBLE, CPU_Prev, 0, MPI_COMM_WORLD, &req1);
-	  MPI_Isend (SendInnerBoundary, size_com, MPI_DOUBLE, CPU_Prev, 0, MPI_COMM_WORLD, &req2);
-	}
-	}
-	if ( CPU_Rank > 0 ) {
-	MPI_Wait (&req1, &stat);
-	MPI_Wait (&req2, &stat);
-	memcpy (field->Field, RecvInnerBoundary, l*sizeof(real));
+		MPI_Wait (&req1, &stat);
+		MPI_Wait (&req2, &stat);
+		memcpy (field->Field, RecvInnerBoundary, l*sizeof(real));
 	}
 	if ( CPU_Rank != CPU_Highest ) {
-	MPI_Wait (&req3, &stat);
-	MPI_Wait (&req4, &stat);
-	memcpy (field->Field+oo, RecvOuterBoundary, l*sizeof(real));
+		MPI_Wait (&req3, &stat);
+		MPI_Wait (&req4, &stat);
+		memcpy (field->Field+oo, RecvOuterBoundary, l*sizeof(real));
 	}
 }
 
@@ -963,26 +942,26 @@ real atan3(y, x)
 {	
 	// Declaration
 	real angle, absx, absy;
-	if ((x == 0.0) && (y == 0.0)) {
+	if (( x == 0.0 ) && ( y == 0.0 )) {
 		angle = 0.0;
 		return angle;
 	}
 
 	// Function
-	if (x < 0.0) {
+	if ( x < 0.0 ) {
 		absx = -x;
 	} else {
 		absx = x;
 	}
 
-	if (y < 0.0){
+	if ( y < 0.0 ) {
 		absy = -y;
 	} else {
 		absy = y;
 	}
 
-	if (absy - absx == absy) {
-		if (y < 0.0){
+	if ( (absy - absx) == absy ) {
+		if ( y < 0.0 ) {
 			angle = PI;
 		} else {
 			angle = 0.0;
@@ -990,16 +969,16 @@ real atan3(y, x)
 		return angle;
 	}
 
-	if (absx - absy == absx){
+	if ( (absx - absy) == absx ) {
 		angle = 0.0;
 	} else {
 		angle = atan(y/x);
 	}
 
-	if (x < 0.0) {
+	if ( x < 0.0 ) {
 		angle = angle + PI;
 	} else {
-		if (y < 0.0) {
+		if ( y < 0.0 ) {
 			angle = angle + 2.0*PI;
 		}
 	}
@@ -1016,7 +995,7 @@ int sign2(val)
 	int sign;
 
 	// Function
-	if (val >= 0) {
+	if ( val >= 0 ) {
 		sign = 1;
 	} else {
 		sign = -1;

@@ -1,20 +1,20 @@
 /* C Header
 	* @filename        : SourceEuler.c
-	* @author          : Matthew Mutter (trinarypi)
+	* @author          : Frederic Masset
 	* @last_modified_by: trinarypi
-	* @last_modified   : 2017/06/26 16:57
+	* @last_modified   : 2017/06/27 12:41
 	* @description     :
 */
 #include "mp.h"
+#define CFLSECURITY 0.5 			/* Maximum fraction of zone size */
+															/* swept in one timestep         */
 
-#define CFLSECURITY 0.5		/* Maximum fraction of zone size */
-				/* swept in one timestep */
+#define CVNR 1.41       			/* Shocks are spread over CVNR zones:       */
+                          		/* von Neumann-Richtmyer viscosity constant */
+															/* Beware of misprint in Stone and Norman's */
+															/* paper : use C2^2 instead of C2           */
+#define NBODYSECURITY 200.0  	/* Fraction of the smallest pair-wise period in the binary-planet system */
 
-#define CVNR 1.41       	/* Shocks are spread over CVNR zones:       */
-                                /* von Neumann-Richtmyer viscosity constant */
-				/* Beware of misprint in Stone and Norman's */
-				/* paper : use C2^2 instead of C2           */
-#define NBODYSECURITY 200.0  /* Fraction of the smallest pair-wise period in the binary-planet system */
 
 static PolarGrid *TemperInt;
 static PolarGrid *VradNew, *VradInt;
@@ -42,6 +42,8 @@ static real dt_hydro_av = 0.0, dt_energy_av = 0.0;
 static int nsteps_av = 0;
 extern boolean  AnalyticCooling;
 extern boolean ExplicitRadTransport;
+extern int FLDTimeStepsCFL;
+
 
 boolean DetectCrash (array)
      PolarGrid *array;
@@ -49,14 +51,16 @@ boolean DetectCrash (array)
   int i, j, l, nr, ns;
   real *ptr;
   boolean bool = NO;
+
   nr = array->Nrad;
   ns = array->Nsec;
   ptr= array->Field;
+
 #pragma omp parallel for private(j,l) shared(bool)
   for (i = 0; i < nr; i++) {
     for (j = 0; j < ns; j++) {
       l = j+i*ns;
-      if (ptr[l] < 0.0) {
+      if ( ptr[l] < 0.0 ) {
 	      bool = YES;
         crash_i = i+IMIN;
         crash_j = j;
@@ -65,7 +69,8 @@ boolean DetectCrash (array)
   }
   return bool;
 }
- 
+
+
 void FillPolar1DArrays ()
 {
   FILE *input, *output;
@@ -73,15 +78,17 @@ void FillPolar1DArrays ()
   real drrsep;
   float temporary;
   char InputName[256], OutputName[256];
+
   DTHETA = 2.0*PI/(real)NSEC;
   CV = R/MU/(ADIABATICINDEX-1.0);
   drrsep = (RMAX-RMIN)/(real)GLOBALNRAD;
+
   sprintf (InputName, "%s%s", OUTPUTDIR, "radii.dat");
   sprintf (OutputName, "%s%s", OUTPUTDIR, "used_rad.dat");
   input = fopen (InputName, "r");
-  if (input == NULL) {
+  if ( input == NULL ) {
     mastererr ("Warning : no `radii.dat' file found. Using default.\n");
-    if (LogGrid == YES) {
+    if ( LogGrid == YES ) {
       for (i = 0; i <= GLOBALNRAD; i++) {
 	      Radii[i] = RMIN*exp((real)i/(real)GLOBALNRAD*log(RMAX/RMIN));
       }
@@ -121,9 +128,9 @@ void FillPolar1DArrays ()
   for (i = 1; i < NRAD; i++) {
     InvDiffRmed[i] = 1.0/(Rmed[i]-Rmed[i-1]);
   }
-  if  ( CPU_Master ) {
+  if ( CPU_Master ) {
     output = fopen (OutputName, "w");
-    if (output == NULL) {
+    if ( output == NULL ) {
       mastererr ("Can't write %s.\nProgram stopped.\n", OutputName);
       prs_exit (1);
     }
@@ -132,8 +139,11 @@ void FillPolar1DArrays ()
     }
     fclose (output);
   }
-  if (input != NULL) fclose (input);
+  if ( input != NULL ) {
+  	fclose (input);
+  }
 }
+
 
 void InitEuler (Vr, Vt, Rho, Energy)
      PolarGrid *Vr, *Vt, *Rho, *Energy;
@@ -157,10 +167,6 @@ void InitEuler (Vr, Vt, Rho, Energy)
   }
   Qplus        = CreatePolarGrid(NRAD, NSEC, "Qplus");
   QDiv         = CreatePolarGrid(NRAD, NSEC, "Qdiv");
-  /* Initialise the fields required for radiative cooling, transport etc. */
-  
-  /* Initialise disc height array in preparation for new AspectRatio method */
-  
   InitComputeAccel ();
   /* Rho and Energy are already initialized: cf main.c */
   ComputeSoundSpeed (Rho, Energy);
@@ -175,17 +181,22 @@ void InitEuler (Vr, Vt, Rho, Energy)
   InitGasVelocities (Vr, Vt);
 }
 
-real min2 (a,b)
-     real a,b;
+
+real min2 (a, b)
+     real a, b;
 {
-  if (b < a) return b;
+  if ( b < a ) {
+  	return b;
+  }
   return a;
 }
 
-real max2 (a,b)
-     real a,b;
+real max2 (a, b)
+     real a, b;
 {
-  if (b > a) return b;
+  if ( b > a ) {
+  	return b;
+  }
   return a;
 }
 
@@ -195,10 +206,12 @@ void ActualiseGas (array, newarray)
 {
   int i,j,l,ns,nr;
   real *old, *new;
+
   nr = array->Nrad;
   ns = array->Nsec;
   old= array->Field;
   new= newarray->Field;
+
 #pragma omp parallel for private(j,l)
   for (i = 0; i <= nr; i++) {
     for (j = 0; j < ns; j++) {
@@ -273,7 +286,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           }
           gastimestepcfl = ConditionCFL (Vrad, Vtheta, Energy, DT-dtemp, sys, bsys);
         }
-
 	      MPI_Allreduce (&gastimestepcfl, &GasTimeStepsCFL, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 	      dt = (DT-dtemp)/(real)GasTimeStepsCFL;
       }
@@ -283,10 +295,9 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       if ( DiscMassTaper ) {
         DiscMassTaperCalc (Rho, dt);
       }
-
       AccreteOntoPlanets (Rho, Vrad, Vtheta, dt, sys);
       /* Accrete onto binary stars goes here - need to find a dynamical timescale to use for this */
-      if ( BinaryOn ) {
+      if (( BinaryOn ) && ( HydroOn)) {
         AccreteOntoStars (Rho,dt, bsys);
       }
     }
@@ -330,7 +341,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     if ( BinaryOn ) {
       CalcAbin (bsys);
     }
-
     /* Below we correct vtheta, planet's position and velocities if we
      work in a frame non-centered on the star */
     if ( Corotating ) {
@@ -357,7 +367,11 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
 	      AlreadyCrashed++;
 	      masterprint ("c");
       } else {
-	      masterprint (".");
+      	if ( FLDTimeStepsCFL > 1) {
+      		masterprint("%d.", FLDTimeStepsCFL);
+      	} else {
+	      	masterprint (".");
+	      }
       }
      	fflush (stdout);
      	if ( ZMPlus ) {
@@ -373,12 +387,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         	CheckField(VradInt, check_neg, check_zero, "SubStep1");
         	CheckField(VthetaInt, check_neg, check_zero, "SubStep1");
         }
-    	} else {
-        ActualiseGas (VradInt, Vrad);
-        ActualiseGas (VthetaInt, Vtheta);
-      }
-        
-      if ( HydroOn ) {
         SubStep2 (Rho, Energy, dt);
         if ( debug ) {
         	int check_neg = 0;
@@ -398,10 +406,10 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         }
         ActualiseGas (Vrad, VradNew);
         ActualiseGas (Vtheta, VthetaNew);
-      } else {
-        ActualiseGas(EnergyInt, Energy);
-        ActualiseGas(Vrad,VradInt);
-        ActualiseGas(Vtheta,VthetaInt);
+    	} else {
+        ActualiseGas (EnergyInt, Energy);
+        ActualiseGas (Vrad,VradInt);
+        ActualiseGas (Vtheta,VthetaInt);
       }
       ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       
@@ -451,6 +459,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       mdcp = CircumPlanetaryMass (Rho, sys);
       exces_mdcp = mdcp - mdcp0;
     }
+
     PhysicalTime += dt;
     timestep_counter++;
   }
@@ -608,21 +617,21 @@ void SubStep2 (Rho, Energy, dt)
     /* term for advection of thermal energy polargrid */
     if (( Adiabatic ) && ( !RadiativeOnly )) {
 #pragma omp for nowait
-      	for (i = 0; i < nr; i++) {
-	      	dxtheta = 2.0*PI/(real)ns*Rmed[i];
-	      	invdxtheta = 1.0/dxtheta;
-	      	for (j = 0; j < ns; j++) {
-	        	l = j+i*ns;
-	        	lip = l+ns;
-	        	ljp = l+1;
-	        	if ( j == ns-1 ) {
-            	ljp = i*ns;
-            }
-	        	energyint[l] = energy[l] - \
-	         		dt*qr[l]*(vrad[lip]-vrad[l])*InvDiffRsup[i] -	\
-	         		dt*qt[l]*(vtheta[ljp]-vtheta[l])*invdxtheta;
-	      	}
-      	}
+      for (i = 0; i < nr; i++) {
+	      dxtheta = 2.0*PI/(real)ns*Rmed[i];
+	      invdxtheta = 1.0/dxtheta;
+	      for (j = 0; j < ns; j++) {
+	        l = j+i*ns;
+	        lip = l+ns;
+	        ljp = l+1;
+	        if ( j == ns-1 ) {
+            ljp = i*ns;
+          }
+	        energyint[l] = energy[l] - \
+	         	dt*qr[l]*(vrad[lip]-vrad[l])*InvDiffRsup[i] -	\
+	         	dt*qt[l]*(vtheta[ljp]-vtheta[l])*invdxtheta;
+	      }
+      }
     }
   }
 }
@@ -692,7 +701,8 @@ void SubStep3 (Rho, dt)
     CheckField(EnergyNew, check_neg, check_zero, "SubStep3");
   }
 }
-   		   
+
+
 int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
      PolarGrid *Vrad, *Vtheta, *energy;
      PlanetarySystem *sys;
@@ -727,6 +737,7 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   ij = 0;
   Pmin = 1.0e30;
   Ppair = (real *)malloc (sizeof(real)*(nstar*nplan));
+
   for (i = 0; i < nr; i++) {
     dxrad = Rsup[i]-Rinf[i];
     dxtheta=Rmed[i]*2.0*PI/(real)ns;
@@ -753,7 +764,9 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
       l = j+i*ns;
       lip = l+ns;
       ljp = l+1;
-      if (j == ns-1) ljp = i*ns;
+      if ( j == ns-1 ) {
+      	ljp = i*ns;
+      }
       cs = soundspeed[l];
       invdt1 = cs/(min2(dxrad,dxtheta));
       invdt2 = fabs(vr[l])/dxrad;
@@ -765,7 +778,7 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
       } else {
         dvr = -dvr;
       }
-      if (dvt >= 0.0) {
+      if ( dvt >= 0.0 ) {
         dvt = 1.0e-10;
       } else {
         dvt = -dvt;
@@ -777,9 +790,9 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
       } else {
         dt = CFLSECURITY/sqrt(invdt1*invdt1);
       }
-      if (dt < newdt) {
+      if ( dt < newdt ) {
 	      newdt = dt;
-	      if (debug == YES) {
+	      if ( debug == YES ) {
 	        ideb = i;
 	        jdeb = j;
 	        itdbg1 = 1.0/invdt1; itdbg2=1.0/invdt2; itdbg3=1.0/invdt3; itdbg4=1.0/invdt4;
@@ -796,20 +809,22 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
       for (j = 0; j < nplan; j++) {
         dist = pow((xs[i] - xp[j]), 2.0)+pow((ys[i] - yp[j]), 2.0);
         Ppair[ij] = 2.0*PI*sqrt(dist*sqrt(dist)/G/(ms[i] + mp[j]));
-        if (Ppair[ij] < Pmin){
+        if ( Ppair[ij] < Pmin ) {
           Pmin = Ppair[ij];
         }
 		    ij++;
       }
     }
     dt_nbod = Pmin/NBODYSECURITY;
-	  if (dt_nbod < newdt) {
+	  if ( dt_nbod < newdt ) {
       newdt = dt_nbod;
     }
   }
   for (i = Zero_or_active; i < MaxMO_or_active; i++) {
     dt = 2.0*PI*CFLSECURITY/(real)NSEC/fabs(Vmoy[i]*InvRmed[i]-Vmoy[i+1]*InvRmed[i+1]);
-    if (dt < newdt) newdt = dt;
+    if ( dt < newdt ) {
+    	newdt = dt;
+    }
   }
   // if ( Adiabatic ) {
   //   real dt_e;
@@ -818,7 +833,7 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   //     newdt = dt_e;
   //   }
   // }
-  if (deltaT < newdt) {
+  if ( deltaT < newdt ) {
     newdt = deltaT;
   }
   // if (debug == YES) {
@@ -842,6 +857,7 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   // }
   return (int)(ceil(deltaT/newdt));
 }
+
 
 void ComputeSoundSpeed (Rho, Energy)
      PolarGrid *Rho;
@@ -891,23 +907,24 @@ void ComputePressureField (Rho, Energy)
 	for ( i = 0; i < nr; i++ ) {
 		for ( j = 0; j < ns; j++ ) {
 			l = i*ns + j;
-			if (!Adiabatic) {
+			if ( !Adiabatic ) {
 				pres[l] = dens[l]*cs[l]*cs[l]; 
 	/* since SoundSpeed is not updated
 	from initialization, cs remains
 	axisymmetric */
 			} else {
-				pres[l] = (ADIABATICINDEX-1.0)*energ[l];
+				pres[l] = (ADIABATICINDEX - 1.0)*energ[l];
 			}
 		}
 	}
 	// Debug
-  	if ( debug ) {
-  		int check_neg = 1;
-    	int check_zero = 1;
-    	CheckField(Pressure, check_neg, check_zero, "ComputePressureField");
-  	}
+	if ( debug ) {
+		int check_neg = 1;
+  	int check_zero = 1;
+  	CheckField(Pressure, check_neg, check_zero, "ComputePressureField");
+	}
 }
+
 
 void ComputeTemperatureField (Rho, energy)
      PolarGrid *Rho, *energy;
@@ -925,7 +942,7 @@ void ComputeTemperatureField (Rho, energy)
   for ( i = 0; i < nr; i++ ) {
     for ( j = 0; j < ns; j++ ) {
       l = i*ns + j;
-      if (!Adiabatic) {
+      if ( !Adiabatic ) {
 	      temp[l] = MU/R* pres[l]/dens[l];
       } else {
 	      temp[l] = MU/R*(ADIABATICINDEX-1.0)*energ[l]/dens[l];
@@ -939,6 +956,7 @@ void ComputeTemperatureField (Rho, energy)
     CheckField(Temperature, check_neg, check_zero, "ComputeTemperatureField");
   }
 }
+
 
 real CircumPlanetaryMass (Rho, sys)
      PolarGrid *Rho;
@@ -954,34 +972,37 @@ real CircumPlanetaryMass (Rho, sys)
   ord = CellOrdinate->Field;
   xpl = sys->x[0];
   ypl = sys->y[0];
+
   mdcplocal = 0.0;
   mdcptotal = 0.0;
-  if (FakeSequential && (CPU_Rank > 0)) {
+
+  if ( FakeSequential && ( CPU_Rank > 0 )) {
     MPI_Recv (&mdcplocal, 1, MPI_DOUBLE, CPU_Rank-1, 0, MPI_COMM_WORLD, &stat);
   }
-  for ( i = Zero_or_active; i < Max_or_active; i++ ) {
-    for ( j = 0; j < ns; j++ ) {
+  for (i = Zero_or_active; i < Max_or_active; i++) {
+    for (j = 0; j < ns; j++) {
       l = i*ns + j;
-      dist = sqrt ( (abs[l]-xpl)*(abs[l]-xpl) +		\
-		    (ord[l]-ypl)*(ord[l]-ypl) );
+      dist = sqrt ((abs[l] - xpl)*(abs[l] - xpl) + \
+		    (ord[l] - ypl)*(ord[l] - ypl));
       if ( dist < HillRadius ) {
-        mdcplocal += Surf[i] * dens[l];
+        mdcplocal += Surf[i]*dens[l];
       }
     }
   }
-  if (FakeSequential) {
-     if (CPU_Rank < CPU_Number-1) {
+  if ( FakeSequential ) {
+     if ( CPU_Rank < CPU_Number-1 ) {
        MPI_Send (&mdcplocal, 1, MPI_DOUBLE, CPU_Rank+1, 0, MPI_COMM_WORLD);
      }
   } else {
     MPI_Allreduce (&mdcplocal, &mdcptotal, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   }
-  if (FakeSequential) {
+  if ( FakeSequential ) {
     MPI_Bcast (&mdcplocal, 1, MPI_DOUBLE, CPU_Number-1, MPI_COMM_WORLD);
     mdcptotal = mdcplocal;
   }
   return mdcptotal;
 }
+
 
 void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
   int TimeStep;
@@ -995,7 +1016,6 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
   real *dens, *vr, *vth, *ec, *pc;
   real ed, edlocal, pd, pdlocal, Md, Mdlocal, etemp;
   real xc, yc, vxc, vyc, ang, Axc, Ayc, d, mu;
-
   FILE *output;
   char name[256];
 
@@ -1010,9 +1030,6 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
 #pragma omp parallel for
   for (i = 0; i < (nr+1)*ns; i++) {
     ec[i] = 0.0;
-  }
-#pragma omp parallel for
-  for (i = 0; i < (nr+1)*ns; i++) {
     pc[i] = 0.0;
   }
 
@@ -1020,7 +1037,7 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
   
   /* -- Calculates mass of whole gas disk between Rmin and Rmax -- */
 
-  if (FakeSequential && (CPU_Rank > 0)) {
+  if ( FakeSequential && ( CPU_Rank > 0 )) {
     MPI_Recv (&Mdlocal, 1, MPI_DOUBLE, CPU_Rank-1, 0, MPI_COMM_WORLD, &stat);
   }
 
@@ -1031,19 +1048,21 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
       Mdlocal += Surf[i]*dens[l];
     }
   }
-  if (FakeSequential) {
-     if (CPU_Rank < CPU_Number-1)
+  if ( FakeSequential ) {
+     if ( CPU_Rank < CPU_Number-1 ) {
        MPI_Send (&Mdlocal, 1, MPI_DOUBLE, CPU_Rank+1, 0, MPI_COMM_WORLD);
-  } else
+     }
+  } else {
     MPI_Allreduce (&Mdlocal, &Md, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  if (FakeSequential) {
+  }
+  if ( FakeSequential ) {
     MPI_Bcast (&Mdlocal, 1, MPI_DOUBLE, CPU_Number-1, MPI_COMM_WORLD);
     Md = Mdlocal;
   }
 
   /* -- Calculates individual cell's orbital elements -- */
 
-  if (FakeSequential && (CPU_Rank > 0)) {
+  if ( FakeSequential && ( CPU_Rank > 0 )) {
     MPI_Recv (&edlocal, 1, MPI_DOUBLE, CPU_Rank-1, 0, MPI_COMM_WORLD, &stat);
     MPI_Recv (&pdlocal, 1, MPI_DOUBLE, CPU_Rank-1, 0, MPI_COMM_WORLD, &stat);
   }
@@ -1064,24 +1083,28 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
       Axc = xc*vyc*vyc/mu-yc*vxc*vyc/mu-xc/d;
       Ayc = yc*vxc*vxc/mu-xc*vxc*vyc/mu-yc/d;
       etemp = Axc*Axc+Ayc*Ayc;
-      if (etemp < 0.0) etemp = 0.0;
+      if ( etemp < 0.0 ) {
+      	etemp = 1.0E-20;
+      }
       ec[l] = sqrt(etemp);
-      if (ec[l] < 1.0E-6) ec[l] = 0.0;
-
+      if ( ec[l] < 1.0E-6 ) {
+      	ec[l] = 0.0;
+      }
       edlocal += dens[l]*ec[l]*Surf[i];
 
-      if (ec[l] != 0.0) {
+      if ( ec[l] != 0.0 ) {
         pc[l]=atan2(Ayc,Axc);
       } else {
         pc[l]=atan2(yc,xc);
       }
-      if (fabs (pc[l]) < 1.0E-6) pc[l] = 0.0;
-      
+      if ( fabs(pc[l]) < 1.0E-6 ) {
+      	pc[l] = 0.0;
+      }
       pdlocal += dens[l]*pc[l]*Surf[i];
     } 
   }
-  if (FakeSequential) {
-     if (CPU_Rank < CPU_Number-1) {
+  if ( FakeSequential ) {
+     if ( CPU_Rank < CPU_Number-1 ) {
        MPI_Send (&edlocal, 1, MPI_DOUBLE, CPU_Rank+1, 0, MPI_COMM_WORLD);
        MPI_Send (&pdlocal, 1, MPI_DOUBLE, CPU_Rank+1, 0, MPI_COMM_WORLD);
      }
@@ -1089,7 +1112,7 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
     MPI_Allreduce (&edlocal, &ed, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce (&pdlocal, &pd, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   }
-  if (FakeSequential) {
+  if ( FakeSequential ) {
     MPI_Bcast (&edlocal, 1, MPI_DOUBLE, CPU_Number-1, MPI_COMM_WORLD);
     MPI_Bcast (&pdlocal, 1, MPI_DOUBLE, CPU_Number-1, MPI_COMM_WORLD);
     ed = edlocal;
@@ -1103,11 +1126,13 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
 
   /* -- Print out results -- */
 
-  if (!CPU_Master) return;
+  if ( !CPU_Master ) {
+  	return;
+  }
   fflush (stdout);
   sprintf (name, "%sdiscorbit.dat", OUTPUTDIR);
   output = fopen (name, "a");
-  if (output == NULL) {
+  if ( output == NULL ) {
     fprintf (stderr, "Can't write 'discorbit.dat' file. Aborting.\n");
     prs_exit (1);
   }
@@ -1116,7 +1141,7 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
   fflush (stdout);
   sprintf (name, "%sdiscmass.dat", OUTPUTDIR);
   output = fopen (name, "a");
-  if (output == NULL) {
+  if ( output == NULL ) {
     fprintf (stderr, "Can't write 'discmass.dat' file. Aborting.\n");
     prs_exit (1);
   }
@@ -1124,6 +1149,7 @@ void SolveDiscOrbits (TimeStep,Rho, Vrad, Vtheta, e_cell, per_cell)
   fclose (output);
   fflush (stdout);
 }   
+
 
 void DiscMassTaperCalc (gas_density, timestep)
   PolarGrid *gas_density;
@@ -1148,6 +1174,7 @@ void DiscMassTaperCalc (gas_density, timestep)
   }
 }
 
+
 void ApplyFloor (gas_density, gas_energy)
   // Input
   PolarGrid *gas_density;
@@ -1171,11 +1198,13 @@ void ApplyFloor (gas_density, gas_energy)
   for (i = 0; i < nr; i++) {
     for (j = 0; j < ns; j++) {
       l = j+i*ns;
-      if (dens[l] < SigmaSafetyFloor)
+      if (dens[l] < SigmaSafetyFloor) {
         dens[l] = SigmaSafetyFloor;
+      }
       EnergySafetyFloor = dens[l]*Tfloor*R/(MU*(ADIABATICINDEX-1.0));
-      if (energy[l] < EnergySafetyFloor)
+      if (energy[l] < EnergySafetyFloor) {
         energy[l] = EnergySafetyFloor;
+      }
     }
   }
 }
@@ -1210,7 +1239,7 @@ void ComputeQplus (Rho)
         viscosity = FViscosity (Rmed[i]); /* Global_Bufarray holds cs */
         for (j = 0; j < ns; j++) {
           l = j+i*ns;
-          if (viscosity != 0.0) {
+          if ( viscosity != 0.0 ) {
             qplus[l] = 0.5/viscosity/dens[l]*(Trr[l]*Trr[l] + \
              Trp[l]*Trp[l] +  \
              Tpp[l]*Tpp[l] );
@@ -1230,7 +1259,7 @@ void ComputeQplus (Rho)
         li2p = lip+ns;
         qpip = qplus[lip];   /* qplus(i=1,j) */
         qpi2p = qplus[li2p]; /* qplus(i=2,j) */
-        if (viscosity != 0.0) {
+        if ( viscosity != 0.0 ) {
           /* power-law extrapolation */
           qplus[l] = qpip*exp( log(qpip/qpi2p) * log(r/rip) / log(rip/ri2p) );
         } else {
@@ -1301,7 +1330,6 @@ real EnergyConditionCFL(Energy)
         dedt_abs += fabs(qplus[l]);
         dedt += qplus[l];
       }
-
       old_dt = energy[l]/dedt_abs;
       old_dt /= factor;
       if ( old_dt < new_dt ) {
@@ -1350,6 +1378,7 @@ real RadCoolConditionCFL(Energy)
   return new_dt;
 }
 
+
 void ComputeQterms (Rho, Vrad, Vtheta, Energy, bsys)
   // Input
   PolarGrid *Rho;
@@ -1378,6 +1407,7 @@ void ComputeQterms (Rho, Vrad, Vtheta, Energy, bsys)
   }
   ComputeQplus(Rho);
 }
+
 
 void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
   // Input

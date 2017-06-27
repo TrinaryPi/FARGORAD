@@ -189,6 +189,7 @@ void DumpRadiationFields(Field)
 	WriteDiskPolar(Field, 9999);
 	WriteDiskPolar(Qplus, 9999);
 	WriteDiskPolar(QDiv, 9999);
+	PrintBooleanUsage();
 }
 
 

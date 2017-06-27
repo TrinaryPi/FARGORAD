@@ -6,7 +6,7 @@
 # Generic IA32 Linux platform for pentium 3 or higher (otherwise edit
 #accordingly) FARGO_ARCH must be set to LINUX
 CC_LINUX  = gcc
-OPT_LINUX = -march=native -Wall -g -O0 
+OPT_LINUX = -march=native -Wall -g -O3 
 OPTSEQ_LINUX = 
 PARAOPT_LINUX =
 PARACC_LINUX = mpicc
