@@ -138,7 +138,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	real Cavity_sigma, Cavity_rkappa, Cavity_height, Cavity_temperature;
 	real Ray_sigma, Ray_rkappa, Ray_height, Ray_temperature;
 	real *Send_FieldBuffer, *Recv_FieldBuffer;
-	real *Tstar, *Rstar;
+	real Tstar, *Rstar;
 	real rho;
 	real *xb, *yb, rb;
 	real c1, dth, starcons;
@@ -158,7 +158,6 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	QRT 		= QirrRT->Field;
 	nstar		= IrrSources->nb;
 	Rstar 		= IrrSources->Rstar;
-	Tstar 		= IrrSources->Tstar;
 	xb			= bsys->x;
 	yb			= bsys->y;
 	/* Allocate memory for global Sigma, Kappa_R, Height, Temperature (four-fields)
@@ -263,8 +262,8 @@ void ComputeBinarySourceRT (gas_density, bsys)
 		}
 
 		for (s = 0; s < nstar; s++) {
-			Tstar[s] =  StarTaper*(IrrSources->Tstar[s]);
-			starcons = STEFANK*pow(Tstar[s]*Tstar[s]*Rstar[s], 2.0);
+			Tstar =  StarTaper*(IrrSources->Tstar[s]);
+			starcons = STEFANK*pow(Tstar*Tstar*Rstar[s], 2.0);
 			rb = hypot(xb[s], yb[s]);
 
 			for (j = 0; j < ns; j++) {
@@ -352,7 +351,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 						/* update tau from previous values of tau and delta tau */
 						ray->tau += ray->dtau;
-						if (( ray->tau > TAUCEILING ) || ( GlobalRmed[i] >= rb )) {
+						if (( ray->tau > TAUCEILING ) && ( GlobalRmed[i] >= rb )) {
 							ray->diff = 0;
 							ray->env = -1;
 							continue_in_i[j] = 0;
@@ -362,7 +361,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 							/* ray advanced to target cell
 							   relevant field values are 
 							   the on-grid values */
-							if ( ray->length <= 1.5*Rstar[s] ) {
+							if ( ray->length <= 1.01*Rstar[s] ) {
 								/* ray is within radius of the star */
 								Ray_sigma = 0.0;
 								Ray_rkappa = 0.0;
@@ -380,7 +379,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 							Ray_rkappa = Cavity_rkappa;
 							Ray_height = Cavity_height;
 							Ray_temperature = Cavity_temperature;
-						} else if (( ray->length <= 1.5*Rstar[s] ) || ( ray->env < 0 )) {
+						} else if (( ray->length <= 1.01*Rstar[s] ) || ( ray->env < 0 )) {
 							/*ray is within radius of the star */
 							Ray_sigma = 0.0;
 							Ray_rkappa = 0.0;
@@ -427,7 +426,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 							Ray_height = th2th*(r2r*Global_height[lijm] + rr1*Global_height[lip]) + thth1*(r2r*Global_height[ljp] + rr1*Global_height[lijp]);
 							Ray_temperature = th2th*(r2r*Global_temperature[lijm] + rr1*Global_temperature[lip]) + thth1*(r2r*Global_temperature[ljp] + rr1*Global_temperature[lijp]);
 
-							if (( Ray_sigma < 0.0 ) || ( Ray_height < 0.0 ) || ( Ray_temperature < 0.0 ) || ( Ray_rkappa < 0.0 )) {
+							if (( Ray_sigma <= 0.0 ) || ( Ray_height <= 0.0 ) || ( Ray_temperature <= 0.0 ) || ( Ray_rkappa <= 0.0 )) {
 								if (( i != 0 ) && ( EmptyCavity )) {
 									masterprint("Negative interpolated values @ i = %d, j = %d, s = %d\n", i, j, s);
 									MPI_Abort(MPI_COMM_WORLD, 1);
@@ -439,7 +438,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 							ray->dtau = 0.0;
 						} else {
 							rho = c1*Ray_sigma/Ray_height;
-							skappa = ComputeSkappa(Ray_sigma, Ray_rkappa, Ray_temperature, Tstar[s]);
+							skappa = ComputeSkappa(Ray_sigma, Ray_rkappa, Ray_temperature, Tstar);
 							ray->dtau = rho*skappa*ray->dr;
 						}
 						if ( ray->env > 1 ) {
@@ -451,11 +450,15 @@ void ComputeBinarySourceRT (gas_density, bsys)
 				}
 			}
 		}
+		real dedt;
 		for (i = 0; i < GLOBALNRAD; i++) {
 			for (j = 0; j < ns; j++) {
 				l = j+i*ns;
-				if ( Global_qrt[l] != 0.0 ) {
-					Global_qrt[l] = Global_qrt[l]/(CV*sigma[l]);
+				dedt = Global_qrt[l];
+				if ( dedt > 0.0 ) {
+					Global_qrt[l] = dedt/(CV*Global_sigma[l]);
+				} else {
+					Global_qrt[l] = 0.0;
 				}
 			}
 		}
@@ -478,6 +481,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	free(ff_displs);
 	free(ff_sizes);
 	CommunicateFieldBoundaries(QirrRT);
+	SmoothField(QirrRT);
 
 	// Debug
 	if ( RadiationDebug ) {
@@ -812,8 +816,15 @@ void ComputeSingleSourceRT (gas_density)
 		for (j = 0; j < ns; j++) {
 			l = j+i*ns;
 			QRT[l] = ComputeQRT(Fs, Rmed[i], gridTau[l], cellTau[l], dr, 0);
+			if ( QRT[l] > 0.0 ) {
+				QRT[l] = QRT[l]/(CV*Sigma[l]);
+			} else {
+				QRT[l] = 0.0;
+			}
 		}
 	}
+
+	SmoothField(QirrRT);
 
 	/* Free Send and Receive buffers
 		 and stride length arrays */
@@ -899,8 +910,9 @@ void CommunicateFieldBoundaries (field)
 	o = (nr-2*CPUOVERLAP)*NSEC;
 
 	// Function
-	if (allocated_radcomm == NO)
+	if ( allocated_radcomm == NO ) {
 		AllocateRadComm ();
+	}
 
 	memcpy (SendInnerBoundary, field->Field+l, l*sizeof(real));
 	memcpy (SendOuterBoundary, field->Field+o, l*sizeof(real));
@@ -1064,31 +1076,35 @@ real ComputeQRT(starcons, radius, tau, dtau, dr, flag)
 	return qrt;
 }
 
-void SubStep4_Explicit_Irr (gas_density, gas_energy, timestep)
+void SubStep4_Explicit_Irr (timestep)
 	// Input
-	PolarGrid *gas_density;
-	PolarGrid *gas_energy;
   real timestep;
 {
 	// Declaration
-	int i, j, l, ns, nr;
-	real *temperature, *Qirrrt, *energy, *density;
+	int i, j, l, ns, nr, first_i=0, last_i;
+	real *temperature, *Qirrrt;
 
 	// Assignment
 	nr = QirrRT->Nrad;
 	ns = QirrRT->Nsec;
 	Qirrrt = QirrRT->Field;
 	temperature = Temperature->Field;
-	energy = gas_energy->Field;
-	density = gas_density->Field;
-
+	last_i = nr;
 
 	// Function
- 	for (i = 0; i < nr; i++) {
+	if ( RadTransport ) {
+		if ( CPU_Rank == 0 ) {
+			first_i = 1;
+		}
+		if ( CPU_Rank == CPU_Highest ) {
+			last_i = nr-1;
+		}
+		
+	}
+ 	for (i = first_i; i < last_i; i++) {
  		for (j = 0; j < ns; j++) {
  			l = j+i*ns;
  			temperature[l] += timestep*Qirrrt[l];
- 			energy[l] = CV*density[l]*temperature[l];
  		}
  	}
 }
@@ -1104,5 +1120,114 @@ void PrintRayInfo ()
 	masterprint("# ray.y_int[0] = %f, ray.y_int[1] = %f.\n", ray->y_int[0], ray->y_int[1]);
 	masterprint("# ray.n_int = %d\n", ray->n_int);
 	masterprint("############################################################################\n");
+}
+
+
+void SmoothField(input_field)
+	// Input
+	PolarGrid *input_field;
+{
+	// Declaration
+	int i, j, l, nr, ns;
+	int dki, dkj, kki, kkj, kkl, dkl;
+	int ki, kj;
+	int kw, kh, kw2, kh2, strip;
+	real *data, *kernel, sigma, *smoothed_data;
+	PolarGrid *smoothed_field;
+	real data_dum;
+
+	smoothed_field = CreatePolarGrid(NRAD, NSEC, "smooth");
+	//Assignment
+	nr = input_field->Nrad;
+	ns = input_field->Nsec;
+	data = input_field->Field;
+	smoothed_data = smoothed_field->Field;
+	/* Copy input data to output smooth data field */
+	memcpy(&smoothed_data[0], &data[0], nr*ns*sizeof(real));
+
+	// Function
+	/* Create Gaussian smoothing Kernel */
+	kw = 5;
+	kh = 5;
+	sigma = 1.0;
+	strip = 0;
+	kernel = CreateKernel(kw, kh, sigma, strip);
+	kw2 = (kw - 1)/2;
+	kh2 = (kh - 1)/2;
+
+	/* Smooth field data in region available to full kernel */
+	for (i = 0; i < nr; i++) {
+		for (j = 0; j < ns; j++) {
+			l = j+i*ns;
+			smoothed_data[l] = 0.0;
+			for (ki = -kw2; ki <= kw2; ki++) {
+				kki = ki + kw2;
+				dki = i + ki;
+				for (kj = -kh2; kj <= kh2; kj++) {
+					kkj = kj + kh2;
+					kkl = kkj + kki*kh;
+					dkj = j + kj;
+					if ( dkj < 0 ) {
+						dkj = dkj + ns;
+					} else if ( dkj >= ns ) {
+						dkj = dkj - ns;
+					}
+					dkl = dkj + dki*ns;
+					if (( dki < 0 ) || ( dki >= nr)) {
+						data_dum = 0.0;
+					} else {
+						smoothed_data[l] += kernel[kkl]*data[dkl];
+					}
+				}
+			}
+		}
+	}
+	CommunicateFieldBoundaries(smoothed_field);
+	memcpy(&data[0], &smoothed_data[0], nr*ns*sizeof(real));
+	free(kernel);
+	free(smoothed_field);
+}
+
+
+real *CreateKernel(kw, kh, sigma)
+	// Input
+	int kw;
+	int kh;
+	real sigma;
+{
+	// Declaration
+	int ki, kj, kl, kw2, kh2;
+	real *kern;
+	real kern_sum=0.0, x, y, arg;
+
+	// Assignment
+	kern = (real *)malloc(sizeof(real)*kw*kh);
+
+	// Constants
+	kw2 = (kw - 1)/2;
+	kh2 = (kh - 1)/2;
+
+	// Function
+	for (ki = 0; ki < kw; ki++) {
+		for (kj = 0; kj < kh; kj++) {
+			x = ki - kw2;
+			y = kj - kh2;
+			kl = kj + ki*kh;
+			arg = exp(-(x*x + y*y)/(2.0*sigma*sigma));
+			kern[kl] = arg;
+			kern_sum += arg;
+		}
+	}
+	for (ki = 0; ki < kw; ki++) {
+		for (kj = 0; kj < kh; kj++) {
+			kl = kj + ki*kh;
+			if ( kern[kl] != 0.0 ) {
+				kern[kl] /= kern_sum;
+			}
+		}
+	}
+
+	// Output
+	return kern;
 }
 

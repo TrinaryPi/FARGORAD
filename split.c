@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : split.c
+	* @author          : Frederic Masset/Clement Baruteau
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/27 14:33
+	* @description     :
+*/
 #include "mp.h"
 
 void SplitDomain () {

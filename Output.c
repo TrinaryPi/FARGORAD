@@ -14,6 +14,7 @@ extern boolean  Write_Temperature, Write_DivV, Write_Qplus, DiscElem;
 extern boolean  ConfigMp, ConfigPos, BinaryOn, RadTransport;
 extern boolean  Write_DiscHeight, Write_Qminus, Write_Kappa, Write_Qirr, Write_Residual, Write_Coeffs, Write_Rfld, Write_QirrRT, Write_Taus;
 extern boolean  Write_OpticalDepths;
+extern real StarTaper;
 
 void EmptyPlanetSystemFile (sys)
      PlanetarySystem *sys;
@@ -317,9 +318,11 @@ void SendOutput (index, dens, gasvr, gasvt, gasenerg, label, e_cell)
       if ( Merge && (CPU_Number > 1) ) {
         merge(index);
       }
-      if ( RadTransport )
+      if ( RadTransport ) {
         WriteRadTransInfo();
+      }
   }
+  masterprint("StarTaper = %g\n", StarTaper);
 }
 
 void WriteSimVariableFile ()

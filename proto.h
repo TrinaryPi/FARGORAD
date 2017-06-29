@@ -1,6 +1,6 @@
 /* C Header
 	* @filename        : proto.h
-	* @author          : Matthew Mutter (trinarypi)
+	* @author          : Frederic Masset
 	* @last_modified_by: trinarypi
 	* @last_modified   : 2017/06/26 16:59
 	* @description     :
@@ -243,3 +243,5 @@ void SetTemperatureBoundaries();
 
 void EmptyTargetFolder();
 void CopyDensity();
+void SmoothField();
+real *CreateKernel();

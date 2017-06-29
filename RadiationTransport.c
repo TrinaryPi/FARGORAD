@@ -43,6 +43,10 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 
 	// Constants
 	cvfac = timestep*MU*(ADIABATICINDEX-1.0)/R;
+
+	if ( ExplicitRayTracingHeating ) {
+		SubStep4_Explicit_Irr(timestep);
+	}
 	/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
 	if ( CPU_Rank == 0 ) {
 		i = 0;
@@ -232,9 +236,6 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 	 		for (j = 0; j < ns; j++) {
 	 			l = j+i*ns;
 	 			T[l] = Tguess[l];
-	 			if (( ExplicitRayTracingHeating ) && (( i >= One_or_active ) || ( i < MaxMO_or_active ))) {
-	 				T[l] += QirrRT->Field[l];
-	 			}
 	 		}
 	 	}
 
@@ -249,7 +250,7 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 
 	 	if ( RadiationDebug ) {
 	 		int check_neg = 1;
-	    	int check_zero = 1;
+	    int check_zero = 1;
 			CheckField(Temperature, check_neg, check_zero, "SubStep4");
 	 	}
 
@@ -510,7 +511,7 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
 	real timestep;
 {
 	// Declaration
-	int i, j, l, nr, ns, nstep;
+	int i, j, l, nr, ns, nstep, first_i=0;
 	int im, ip, jm, jp;
 	int lim, lip, ljm, ljp;
 	real *density, *T, *energy, *Tnew, *Qirrrt;
@@ -641,21 +642,8 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
     CheckField(Temperature, check_neg, check_zero, "SubStep4 Explicit");
   }
 
-  if ( RayTracingHeating ) {
-  	for (i = 0; i < nr; i++) {
-  		for (j = 0; j < ns; j++) {
-  			l = j + i*ns;
-  			T[l] += timestep*Qirrrt[l];
-  		}
-  	}
-  }
-  /* Convert new temperature field back to energy density */
-  for (i = 0; i < nr; i++) {
-  	for (j = 0; j < ns; j++) {
-  		l = j+i*ns;
-			energy[l] = T[l]*density[l]*CV;
-  	}
-  }
+  // Output
+  ComputeNewEnergyField(gas_density, gas_energy);
 }
 
 void WriteRadTransInfo()

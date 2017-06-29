@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : sgdens.c
+	* @author          : Clement Baruteau
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/27 14:32
+	* @description     :
+*/
 #include "mp.h"
 
 void compute_fftdensity (Rho)

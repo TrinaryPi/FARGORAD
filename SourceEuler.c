@@ -2,7 +2,7 @@
 	* @filename        : SourceEuler.c
 	* @author          : Frederic Masset
 	* @last_modified_by: trinarypi
-	* @last_modified   : 2017/06/27 12:41
+	* @last_modified   : 2017/06/28 12:11
 	* @description     :
 */
 #include "mp.h"
@@ -408,8 +408,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         ActualiseGas (Vtheta, VthetaNew);
     	} else {
         ActualiseGas (EnergyInt, Energy);
-        ActualiseGas (Vrad,VradInt);
-        ActualiseGas (Vtheta,VthetaInt);
       }
       ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       
@@ -432,16 +430,17 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
             ComputeRayTracingHeating(Rho, bsys);
           }
           if (( !RadTransport) && ( ExplicitRayTracingHeating )) {
-            SubStep4_Explicit_Irr(Rho, EnergyNew, dt);
+            SubStep4_Explicit_Irr(dt);
+            ComputeNewEnergyField(Rho, EnergyNew);
           } else {
             SubStep4 (Rho, EnergyNew, dt);
           }
         }
 	      ActualiseGas (Energy, EnergyNew);
       }
-      if ( HydroOn ) {
+      // if ( HydroOn ) {
         Transport (Rho, Vrad, Vtheta, Energy, Label, dt);
-      }
+      // }
       if ( debug ) {
       	int check_neg = 0;
       	int check_zero = 0;

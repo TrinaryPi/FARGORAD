@@ -1,6 +1,6 @@
 /* C Header
 	* @filename        : sgmain.c
-	* @author          : Matthew Mutter (trinarypi)
+	* @author          : Clement Baruteau
 	* @last_modified_by: trinarypi
 	* @last_modified   : 2017/06/26 16:59
 	* @description     :

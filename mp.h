@@ -1,3 +1,10 @@
+/* C Header
+	* @filename        : mp.h
+	* @author          : Frederic Masset
+	* @last_modified_by: trinarypi
+	* @last_modified   : 2017/06/27 14:31
+	* @description     :
+*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>

@@ -1,6 +1,6 @@
 /* C Header
 	* @filename        : main.c
-	* @author          : Matthew Mutter (trinarypi)
+	* @author          : Frederic Masset
 	* @last_modified_by: trinarypi
 	* @last_modified   : 2017/06/26 16:58
 	* @description     :
@@ -290,8 +290,9 @@ main(argc, argv)
 
   /* Initialisation of the fields required for Radiation Modules */
   if (( Irradiation ) || ( RadTransport ) || ( RadCooling ) || ( RayTracingHeating )) {
-    StarTaper = (STARTAPER > 1.0 ? 0 : 1.0);
+    StarTaper = (STARTAPER <= 1.0E-7 ? 1.0 : 0.0);
     InitialiseRadiationModule (gas_density, bsys);
+    masterprint("StarTaper = %g,", StarTaper);
   }
 
   PreInitialisation = NO;

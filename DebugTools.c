@@ -2,8 +2,8 @@
 	* @filename        : DebugTools.c
 	* @author          : Matthew Mutter (trinarypi)
 	* @last_modified_by: trinarypi
-	* @last_modified   : 2017/06/26 13:30
-	* @description     :
+	* @last_modified   : 2017/06/27 17:53
+	* @description     : void::CheckField(line:28), int::CheckValue(line:93), void::PrintBooleanUsage(line:121), void::DumpRadiationFields(line:152), void::CopyDensity(line:196)
 */
 #include "mp.h"
 #include "radiation.h"
