@@ -152,7 +152,6 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	 			}
 	 		}
 
-
 	 		/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
 			BoundaryConditionsFLD(TempGuess, TempGuess);
 			/* Overlap zones communication between neighbouring processors */

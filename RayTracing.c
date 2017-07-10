@@ -45,7 +45,6 @@ void InitRayTracing ()
 		Tau_grid  = CreatePolarGrid(NRAD, NSEC, "Tau_grid");
 	}
 	masterprint("Done.\n\n");
-
 }
 
 
@@ -85,11 +84,11 @@ RayStruct *AllocRayStructure ()
 	RayStruct *array;
 
 	// Function
-	array  = (RayStruct *)malloc (sizeof(RayStruct));
+	array  = (RayStruct *)malloc(sizeof(RayStruct));
 
 	if ( array == NULL ) {
 		fprintf (stderr, "Not enough memory.\n");
-    	prs_exit (1);
+    prs_exit (1);
 	}
 
 	// Output
@@ -150,16 +149,16 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	real skappa, term;
 
 	// Assignment
-	ns 			= gas_density->Nsec;
-	sigma 		= gas_density->Field;
-	rkappa 		= RKappaval->Field;
+	ns					= gas_density->Nsec;
+	sigma				= gas_density->Field;
+	rkappa			= RKappaval->Field;
 	temperature = Temperature->Field;
-	height 		= DiscHeight->Field;
-	QRT 		= QirrRT->Field;
-	nstar		= IrrSources->nb;
-	Rstar 		= IrrSources->Rstar;
-	xb			= bsys->x;
-	yb			= bsys->y;
+	height			= DiscHeight->Field;
+	QRT					= QirrRT->Field;
+	nstar				= IrrSources->nb;
+	Rstar				= IrrSources->Rstar;
+	xb					= bsys->x;
+	yb					= bsys->y;
 	/* Allocate memory for global Sigma, Kappa_R, Height, Temperature (four-fields)
 	and Q_irr^RT fields */
 	if (( CPU_Rank == 0 ) && ( allocated_globalfields == 0 )) {
@@ -177,7 +176,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	// Function
 	/* Gather array and four-field array sizes onto root */
 	if ( CPU_Rank == 0 ) {
-		continue_in_i = (int *)malloc(sizeof(int)* ns);
+		continue_in_i = (int *)malloc(sizeof(int) * ns);
 		sizes 		= (int *)malloc(sizeof(int) * CPU_Number);
 		ff_sizes 	= (int *)malloc(sizeof(int) * CPU_Number);
 		displs 		= (int *)malloc(sizeof(int) * CPU_Number);
@@ -189,17 +188,17 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	/* Allocate memory for four-field send buffer,
 	and copy active zone regions of the fields to this buffer  */
 	Send_FieldBuffer = (real *)malloc((ffas)*sizeof(real));
-	memcpy(&Send_FieldBuffer[0*active_size], &sigma[Zero_or_active*ns], active_size*sizeof(real));
-	memcpy(&Send_FieldBuffer[1*active_size], &rkappa[Zero_or_active*ns], active_size*sizeof(real));
-	memcpy(&Send_FieldBuffer[2*active_size], &height[Zero_or_active*ns], active_size*sizeof(real));
-	memcpy(&Send_FieldBuffer[3*active_size], &temperature[Zero_or_active*ns], active_size*sizeof(real));
+	memcpy(&Send_FieldBuffer[0 * active_size], &sigma[Zero_or_active * ns], active_size * sizeof(real));
+	memcpy(&Send_FieldBuffer[1 * active_size], &rkappa[Zero_or_active * ns], active_size * sizeof(real));
+	memcpy(&Send_FieldBuffer[2 * active_size], &height[Zero_or_active * ns], active_size * sizeof(real));
+	memcpy(&Send_FieldBuffer[3 * active_size], &temperature[Zero_or_active * ns], active_size * sizeof(real));
 
 	/* On Master CPU create receive buffer,
 	for cell and grid tau buffers respectively.
 	Then prepare array of start displacement values (stride length)
 	to send correct array portions back to CPUs */
 	if ( CPU_Rank == 0 ) {
-		Recv_FieldBuffer = (real *)malloc((4*global_real_size));
+		Recv_FieldBuffer = (real *)malloc((4 * global_real_size));
 		/* Create array of stride lengths */
 		ff_displs[0] = 0;
 		displs[0] = 0;
@@ -237,7 +236,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 
 	if ( CPU_Master ) {
 		for (i = 0; i < GLOBALNRAD; i++) {
-			for (j = 0; j < GLOBALNRAD; j++) {
+			for (j = 0; j < ns; j++) {
 				l=j+i*ns;
 				Global_qrt[l] = 0.0;
 			}
@@ -851,11 +850,11 @@ void AllocateGlobalFields ()
 	// Input N/A
 {
 	// Function
-	Global_sigma = (real *)malloc (global_real_size);
-	Global_rkappa = (real *)malloc (global_real_size);
-	Global_height = (real *)malloc (global_real_size);
-	Global_temperature = (real *)malloc (global_real_size);
-	Global_qrt = (real *)malloc (global_real_size);
+	Global_sigma = (real *) malloc (global_real_size);
+	Global_rkappa = (real *) malloc (global_real_size);
+	Global_height = (real *) malloc (global_real_size);
+	Global_temperature = (real *) malloc (global_real_size);
+	Global_qrt = (real *) malloc (global_real_size);
 
 	if (( Global_sigma       == NULL ) || \
 	  	( Global_rkappa      == NULL ) || \

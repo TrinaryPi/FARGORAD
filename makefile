@@ -15,9 +15,9 @@ PARACC_LINUX = mpicc
 #accordingly) FARGO_ARCH must be set to INTEL (sequential only, MPI
 #identical to generic IA32)
 CC_INTEL  = icc
-OPT_INTEL = -O3  -g -Wall -Wno-unused-result -Wno-unknown-pragmas
+OPT_INTEL = -O0  -g -Wall -Wno-unused-result -Wno-unknown-pragmas
 OPTSEQ_INTEL =
-PARAOPT_INTEL = -O3 -march=native 
+PARAOPT_INTEL = -O0 -march=native 
 PARACC_INTEL = mpicc
 
 # Opteron platform FARGO_ARCH must be set to OPTERON
