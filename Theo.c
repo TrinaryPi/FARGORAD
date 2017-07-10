@@ -23,6 +23,7 @@ real Sigma(r)
       gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
     } else {
       gap = 1.6*RMIN;
+      gap = 0.5;
       gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
     }
   }
@@ -93,11 +94,11 @@ real Energy(r)
       		gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
     	} else {
       		gap = 1.6*RMIN;
+    			gap = 0.5;
       		gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
     	}
       sigma = taper_func*gap_func*ScalingFactor*SIGMA0*pow(r,-SIGMASLOPE);
       energy0 = R/MU/(ADIABATICINDEX-1.0)*pow(ASPECTRATIO,2.0)*pow(r,-1.0+2.0*FLARINGINDEX)*sigma;
-    	// energy0 = R/MU/(ADIABATICINDEX-1.0)*gap_func*SIGMA0*pow(ASPECTRATIO,2.0)*pow(r,-SIGMASLOPE-1.0+2.0*FLARINGINDEX);
   	} else {
   		energy0 = R/MU/(ADIABATICINDEX-1.0)*SIGMA0*pow(ASPECTRATIO,2.0)*pow(r,-SIGMASLOPE-1.0+2.0*FLARINGINDEX);
   	}
@@ -106,6 +107,7 @@ real Energy(r)
 
   return energy0;
 }
+
 
 void FillEnergy() 
 {

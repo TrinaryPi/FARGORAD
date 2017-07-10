@@ -327,6 +327,10 @@ void ComputeBinarySourceRT (gas_density, bsys)
 						} else {
 							dray = RTPRECISION*(GlobalRmed[ib+1] - GlobalRmed[ib]);
 						}
+
+						if ( dray > RTPRECISION*DTHETA ) {
+							dray = RTPRECISION*DTHETA;
+						}
 					
 						/* use this factor to calculate x and y increments */
 						if (abs_diff_x == 0) {
@@ -480,6 +484,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 	free(displs);
 	free(ff_displs);
 	free(ff_sizes);
+
 	CommunicateFieldBoundaries(QirrRT);
 	SmoothField(QirrRT);
 
@@ -740,14 +745,9 @@ void ComputeSingleSourceRT (gas_density)
 		for (j = 0; j < ns; j++) {
 			l = j+i*ns;
 			/* Choose whether to have a constant factor between \kappa_R and \kappa_
-				 , say 10 or 1/10 (inline with Bitsch 2014), or use the prescription for \kappa_
-				 used in Dobbs-Dixon 2011, where it depends on a relationship between T and /kappa_R */
+				, say 10 or 1/10 (inline with Bitsch 2014), or use the prescription for \kappa_
+				used in Dobbs-Dixon 2011, where it depends on a relationship between T and /kappa_R */
 			Skappa = ComputeSkappa(Sigma[l], Rkappa[l], T[l], Tstar);
-			/* Commented out
-			if ( NoCFL )
-				H = Rmed[i]*ASPECTRATIO;
-			else
-				H = DiscHeight->Field[l]; */
 			rho = c1*Sigma[l]/H[l];
 			cellTau[l] = Skappa*rho*dr;
 		}
@@ -789,7 +789,6 @@ void ComputeSingleSourceRT (gas_density)
 	if ( CPU_Rank == 0 ) {
 		i = 0;
 		for (j = 0; j < ns; j++) {
-			l = j+i*ns;
 			Send_gridTauBuffer[j] = 0.0;
 		}
 
@@ -797,7 +796,11 @@ void ComputeSingleSourceRT (gas_density)
 			for (j = 0; j < ns; j++) {
 				l = j+i*ns;
 				lim = l-ns;
-				Send_gridTauBuffer[l] = Send_gridTauBuffer[lim] + Recv_cellTauBuffer[lim];
+				if (( RadTransport ) && ( i == 1 )) {
+					Send_gridTauBuffer[l] = 0.0;
+				} else {
+					Send_gridTauBuffer[l] = Send_gridTauBuffer[lim] + Recv_cellTauBuffer[lim];
+				}
 			}
 		}
 	}
@@ -823,7 +826,6 @@ void ComputeSingleSourceRT (gas_density)
 			}
 		}
 	}
-
 	SmoothField(QirrRT);
 
 	/* Free Send and Receive buffers
@@ -1030,7 +1032,7 @@ real ComputeSkappa(S, Rk, T, Tstar)
 
 	// Constants
 	W = 2.2E-3;
-	RtoS_k = 10.0;
+	RtoS_k = 0.1;
 	c1 = 0.5;
 
 	// Function
@@ -1099,12 +1101,11 @@ void SubStep4_Explicit_Irr (timestep)
 		if ( CPU_Rank == CPU_Highest ) {
 			last_i = nr-1;
 		}
-		
 	}
  	for (i = first_i; i < last_i; i++) {
  		for (j = 0; j < ns; j++) {
  			l = j+i*ns;
- 			temperature[l] += timestep*Qirrrt[l];
+ 			temperature[l] += timestep*EFFICIENCY*Qirrrt[l];
  		}
  	}
 }

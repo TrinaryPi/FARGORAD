@@ -55,7 +55,7 @@ void ComputeDiscHeight (bsys)
 						/* Add a smoothing length to cell-binary distance, to avoid singularities */
 						smooth = bsys->smooth[s]*(0.49*pow(q[s], 2.0/3.0))/(0.6*pow(q[s], 2.0/3.0) + log(1.0 + pow(q[s], 1.0/3.0)))*A;
 						smooth *= smooth;
-						// smooth = 0.0;
+						smooth = 0.0;
 						dist = (xc - xstar[s])*(xc -xstar[s]) + (yc - ystar[s])*(yc - ystar[s]);
 						dist_smooth = sqrt(dist + smooth);
 						csiso = cs[l]/sqrt(ADIABATICINDEX);
@@ -264,7 +264,7 @@ void ComputeQirr (Sigma, bsys)
 	// Debug
 	if ( RadiationDebug ) {
 		int check_neg = 1;
-    int check_zero = 1;
+    int check_zero = 0;
 		CheckField(Qirr, check_neg, check_zero, "ComputeQplus");
 	}
 }

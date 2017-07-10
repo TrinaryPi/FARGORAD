@@ -140,7 +140,6 @@ void ComputeTemperatureField ();
 real CircumPlanetaryMass ();
 real compute_smoothing ();
 
-
 void FreeBinary();
 void ListStars();
 void WriteBinaryFile();
@@ -245,3 +244,4 @@ void EmptyTargetFolder();
 void CopyDensity();
 void SmoothField();
 real *CreateKernel();
+void BoundaryConditionsFLD();

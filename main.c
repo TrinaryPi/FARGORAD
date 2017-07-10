@@ -136,7 +136,7 @@ main(argc, argv)
           i++;
           ScalingFactor = atof(argv[i]);
           masterprint ("Scaling factor = %g\n", ScalingFactor);
-	        if ( ScalingFactor <= 0) {
+	        if ( ScalingFactor <= 0 ) {
 	          masterprint ("Incorrect scaling factor\n");
 	          PrintUsage (argv[0]);
 	        }
@@ -160,6 +160,7 @@ main(argc, argv)
 
   if ( Restart == NO ) {
     EmptyTargetFolder();
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   SplitDomain ();

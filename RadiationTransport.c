@@ -12,10 +12,11 @@ static real NormAv=0;
 static int IterAv=0, counter=1;
 extern int FLDTimeStepsCFL;
 
-void SubStep4 (gas_density, gas_energynew, timestep)
+void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	// Input
   PolarGrid *gas_density;
   PolarGrid *gas_energynew;
+  BinarySystem *bsys;
   real timestep;
 {
 	// Declaration
@@ -46,24 +47,14 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 
 	if ( ExplicitRayTracingHeating ) {
 		SubStep4_Explicit_Irr(timestep);
+		ComputeNewEnergyField(gas_density, gas_energynew);
+		ComputeSoundSpeed (gas_density, gas_energynew);
+		ComputeDiscHeight (bsys);
+		ComputeRKappa (gas_density);
 	}
 	/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
-	if ( CPU_Rank == 0 ) {
-		i = 0;
-		for (j = 0; j < ns; j++) {
-			l = j+i*ns;
-			Tguess[l] = TINNER;
-			T[l] = TINNER;
-		}
-	}
-	if ( CPU_Rank == CPU_Highest ) {
-		i = nr-1;
-		for (j = 0; j < ns; j++) {
-			l = j+i*ns;
-			Tguess[l] = TOUTER;
-			T[l] = TOUTER;
-		}
-	}
+	BoundaryConditionsFLD(Temperature, Temperature);
+	BoundaryConditionsFLD(TempGuess, Temperature);
 
 	// Function
 	ComputeRadTransCoeffs(gas_density, timestep);
@@ -79,52 +70,39 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 	 		}
 	 		for (j = 0; j < ns; j++) {
 	 			l = j+i*ns;
-	 			if ( ImplicitRadiative ) {
-	 				if  ( RayTracingHeating ) {
-		  			qirrrt = QirrRT->Field[l];
-		  		}
-		  		if ( Irradiation ) {
-		  			qirr = Qirr->Field[l];
-		  		}
+	 			// if ( ImplicitRadiative ) {
+	 			if  ( ImplicitRayTracingHeating ) {
+		  		qirrrt = QirrRT->Field[l];
 		  	}
-		  	Rij[l] = T[l] + qirrrt + cvfac*qirr/gas_density->Field[l];
-	 			Tguess[l] = T[l];
-	 			Tguess_old[l] = 0.0;
+		  	// 	if ( Irradiation ) {
+		  	// 		qirr = Qirr->Field[l];
+		  	// 	}
+		  	// }
+		  	Rij[l] = T[l] + timestep*EFFICIENCY*qirrrt;
+	 			Tguess[l] = Rij[l];
 	 			norm_tmp[1] += fabs(Rij[l]);
 	 		}
 	 	}
 
-	 	MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-	 	tol = TOLERANCE*norm_tmp[1];
-	 	norm = 2.0*tol;
+	 	// MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	 	// tol = TOLERANCE*norm_tmp[1];
+	 	// norm = 2.0*tol;
+	 	// iteration = 0;
+	 	// while (( norm > tol ) && ( iteration < MAXITERATIONS )) {
+	 	// 	norm = 0.0;
+	 	// 	norm_tmp[0] = 0.0;
+
 	 	iteration = 0;
-
-	 	while (( norm > tol ) && ( iteration < MAXITERATIONS )) {
-	 		norm = 0.0;
-	 		norm_tmp[0] = 0.0;
-
-	 		/* Apply BC */
-	 		if ( CPU_Rank == 0 ) {
-	 			i = 1;
-	#pragma omp parallel for private(l, lim, lip)
-	 			for (j = 0; j < ns; j++) {
-	 				l = j+i*ns;
-	 				lim = l-ns;
-	 				lip = l+ns;
-	 				Tguess[lim] = ApplyInnerBC(Tguess[l], Tguess[lip]);
-	 			}
-	 		}
-	 		if ( CPU_Rank == CPU_Highest ) {
-	 			i = nr-2;
-	#pragma omp parallel for private(l, lim, lip)
-	 			for (j = 0; j < ns; j++) {
-	 				l = j+i*ns;
-	 				lim = l-ns;
-	 				lip = l+ns;
-	 				Tguess[lip] = ApplyOuterBC(Tguess[l], Tguess[lim]);
-	 			}
-	 		}
-	 		
+ 		norm_tmp[0] = 0.0;
+ 		norm_tmp[1] = 0.0;
+ 		norm = 2*TOLERANCE;
+ 		while (( norm > TOLERANCE ) && ( iteration < MAXITERATIONS )) {
+ 			norm = 0.0;
+ 			norm_tmp[0] = 0.0;
+ 			if ( Relative_Max )
+ 				norm_tmp[1] = 0.0;
+	 		/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
+			BoundaryConditionsFLD(TempGuess, TempGuess);
 			/* Black-loop over all even numbered cells */
 	 		for (i = One_or_active; i < MaxMO_or_active; i++) {
 	 			ii = i + IMIN;
@@ -147,18 +125,41 @@ void SubStep4 (gas_density, gas_energynew, timestep)
   					} else {
   						ljp = l+1;
   					}
-  				
   					Tguess_old[l] = Tguess[l];
-  					residual[l] = U1[l]*Tguess[lim] + U2[l]*Tguess[lip] + U3[l]*Tguess[ljm] + U4[l]*Tguess[ljp] + B[l]*Tguess[l] - Rij[l];
+  					residual[l] = B[l]*Tguess[l] - U1[l]*Tguess[lim] - U2[l]*Tguess[lip] - U3[l]*Tguess[ljm] - U4[l]*Tguess[ljp] - Rij[l];
   					Tguess[l] = Tguess_old[l] - omegaOpt[i]*residual[l]/B[l];
-  					norm_tmp[0] += fabs(residual[l]);
+  					// norm_tmp[0] += fabs(residual[l]);
+  					/* norm  = |x^{k} - x^{k-1}| / |x^{k}| --> norm_relative_l2 */
+	  				if ( Relative_Diff ){
+	  					norm_tmp[0] += pow(Tguess_old[l] - Tguess[l], 2.0)/pow(Tguess_old[l], 2.0);
+	  				}
+	  				/* norm = max(|x^{k} - x^{k-1}| / |x^{k}|) --> norm_relative_max */
+	  				if ( Relative_Max ) {
+	  					norm_tmp[0] = fmax(norm_tmp[0], fabs(Tguess_old[l] - Tguess[l]));
+	  					norm_tmp[1] = fmax(norm_tmp[1], fabs(Tguess_old[l]));
+	  				}
+		  			/* norm = |r^{k}| / |b{k}| --> norm_residual_l2 */
+		  			if ( Residual_Diff ) {
+	  					norm_tmp[0] += pow(residual[l], 2.0);
+	  					norm_tmp[1] += pow(T[l],2.0);
+						}
+	  				/* norm = max(|r^{k}| / |b{k}|) --> norm_residual_max */
+	  				if ( Residual_Max ) {
+	  					norm_tmp[0] = fmax(norm_tmp[0], fabs(residual[l]));
+	  					norm_tmp[1] = fmax(norm_tmp[1], fabs(T[l]));
+	  				}
 	 				}
 	 			}
 	 		}
 
+
+	 		/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
+			BoundaryConditionsFLD(TempGuess, TempGuess);
+			/* Overlap zones communication between neighbouring processors */
+	 		CommunicateFieldBoundaries(TempGuess);
 	 		/* If specified, use Chebyshev acceleration to automatically tune the Over-relaxation parameter, omega, each half timestep */
 	 		if ( ChebyshevOmega ) {
-	 			for (i = 0; i < nr; i++) {
+	 			for (i = One_or_active; i < MaxMO_or_active; i++) {
 	 				if ( iteration == 0 ) {
 	 					omegaOpt[i] = 1.0/(1.0 - 0.5*rhoJac[i]*rhoJac[i]);
 	 				} else {
@@ -166,10 +167,6 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 	 				}
 	 			}
 	 		}
-
-			/* Overlap zones communication between neighbouring processors */
-	 		CommunicateFieldBoundaries(TempGuess);
-
 			/* Red-loop over all odd numbered cells */
 	 		for (i = One_or_active; i < MaxMO_or_active; i++) {
 	 			ii = i + IMIN;
@@ -192,32 +189,72 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 		  			} else {
 		  				ljp = l+1;
 		  			}
-
 	  				Tguess_old[l] = Tguess[l];
-	  				residual[l] = U1[l]*Tguess[lim] + U2[l]*Tguess[lip] + U3[l]*Tguess[ljm] + U4[l]*Tguess[ljp] + B[l]*Tguess[l] - Rij[l];
+	  				residual[l] = B[l]*Tguess[l] - U1[l]*Tguess[lim] - U2[l]*Tguess[lip] - U3[l]*Tguess[ljm] - U4[l]*Tguess[ljp] - Rij[l];
 	  				Tguess[l] = Tguess_old[l] - omegaOpt[i]*residual[l]/B[l];
-	  				norm_tmp[0] += fabs(residual[l]);
+	  				// norm_tmp[0] += fabs(residual[l]);
+	  				/* norm  = |x^{k} - x^{k-1}| / |x^{k}| --> norm_relative_l2 */
+	  				if ( Relative_Diff ){
+	  					norm_tmp[0] += pow(Tguess_old[l] - Tguess[l], 2.0)/pow(Tguess_old[l], 2.0);
+	  				}
+	  				/* norm = max(|x^{k} - x^{k-1}| / |x^{k}|) --> norm_relative_max */
+	  				if ( Relative_Max ) {
+	  					norm_tmp[0] = fmax(norm_tmp[0], fabs(Tguess_old[l] - Tguess[l]));
+	  					norm_tmp[1] = fmax(norm_tmp[1], fabs(Tguess_old[l]));
+	  				}
+		  			/* norm = |r^{k}| / |b{k}| --> norm_residual_l2 */
+		  			if ( Residual_Diff ) {
+	  					norm_tmp[0] += pow(residual[l], 2.0);
+	  					norm_tmp[1] += pow(T[l],2.0);
+						}
+	  				/* norm = max(|r^{k}| / |b{k}|) --> norm_residual_max */
+	  				if ( Residual_Max ) {
+	  					norm_tmp[0] = fmax(norm_tmp[0], fabs(residual[l]));
+	  					norm_tmp[1] = fmax(norm_tmp[1], fabs(T[l]));
+	  				}
 	 				}
 	 			}
 	 		}
-
 	 		if ( ChebyshevOmega ) {
-	 			for ( i = 0; i < nr; i++) {
+	 			for (i = One_or_active; i < MaxMO_or_active; i++) {
 	 				omegaOpt[i] = 1.0/(1.0 - 0.25*rhoJac[i]*rhoJac[i]*omegaOpt[i]);
 	 			}
 	 		}
-
-	 		MPI_Allreduce(&norm_tmp[0], &norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
+	 		// MPI_Allreduce(&norm_tmp[0], &norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 			/* Overlap zones communication between neighbouring processors */
-	 		CommunicateFieldBoundaries(TempGuess);
 
+			/* norm  = |x^{k} - x^{k-1}| / |x^{k}| - norm_relative_l2 */
+	 		if ( Relative_Diff ) { 
+		 		MPI_Allreduce(&norm_tmp[0], &norm_tmp[0], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		 		norm = sqrt(norm_tmp[0]);
+		 	}
+	 		/* norm = max(|x^{k} - x^{k-1}| / |x^{k}|) - norm_relative_max */
+	 		if ( Relative_Max ) {
+		 		MPI_Allreduce(&norm_tmp[0], &norm_tmp[0], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+		 		MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+		 		norm = norm_tmp[0]/norm_tmp[1];
+		 	}
+	 		/* norm = |r^{k}| / |b{k}| - norm_residual_l2 */
+	 		if ( Residual_Diff ) {
+		 		MPI_Allreduce(&norm_tmp[0], &norm_tmp[0], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		 		norm_tmp[0] = sqrt(norm_tmp[0]);
+		 		MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+	 			norm_tmp[1] = sqrt(norm_tmp[1]);
+		 		norm = norm_tmp[0]/norm_tmp[1];
+		 	}
+	 		/* norm = max(|r^{k}| / |b{k}|) - norm_residual_max */
+	 		if ( Residual_Max ) {
+		 		MPI_Allreduce(&norm_tmp[0], &norm_tmp[0], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+		 		MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+		 		norm = norm_tmp[0]/norm_tmp[1];
+		 	}
+	 		CommunicateFieldBoundaries(TempGuess);
 	  	iteration++;
 	  	if ( RadiationDebug ) {
 	 			int check_neg = 0;
 	    	int check_zero = 0;
 	    	char str[256];
-	    	sprintf(str, "SubStep4 - Iteration %d", iteration);
+	    	sprintf(str, "SubStep4 - Iteration %d - norm = %g", iteration, norm);
 				CheckField(TempGuess, check_neg, check_zero, str);
 	 		}
 	 	}
@@ -226,12 +263,6 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 	 	IterAv += iteration;
 	 	counter++;
 
-	 	if ( RadiationDebug ) {
-	 		int check_neg = 1;
-	    int check_zero = 1;
-			CheckField(TempGuess, check_neg, check_zero, "SubStep4");
-	 	}
-
 	 	for (i = 0; i < nr; i++) {
 	 		for (j = 0; j < ns; j++) {
 	 			l = j+i*ns;
@@ -239,19 +270,18 @@ void SubStep4 (gas_density, gas_energynew, timestep)
 	 		}
 	 	}
 
-	 	// Debug
-	 	if (( iteration >= MAXITERATIONS ) && ( norm > TOLERANCE )) {
-	 		fprintf (stderr, "Max number of iterations has been reached without convergence. Exiting.\n");
-			WriteDiskPolar (gas_density, 9999);    /* We write the HD arrays */
-			WriteDiskPolar (Temperature, 9999);
-			merge(9999);
-	    prs_exit(1);
-	 	}
-
 	 	if ( RadiationDebug ) {
 	 		int check_neg = 1;
 	    int check_zero = 1;
 			CheckField(Temperature, check_neg, check_zero, "SubStep4");
+	 	}
+
+	 	// Debug
+	 	if (( iteration >= MAXITERATIONS ) && ( norm > TOLERANCE )) {
+	 		fprintf (stderr, "Max number of iterations has been reached without convergence. Exiting.\n");
+			DumpRadiationFields(Temperature);
+			MPI_Finalize();
+			exit(1);
 	 	}
 
 	 	// Output
@@ -345,14 +375,16 @@ void ComputeRadTransCoeffs(gas_density, dt)
 			} else {
 				lambda[l] = 10/((10*rfld[l]) + 9.0 + sqrt(81.0 + (180.0*rfld[l])));
 			}
-	
+
 			D[l] = 4.0*STEFANK*lambda[l]*pow(T[l], 3.0)/(rho*kappa[l]);
-			if ( D[l] < 0.0 ) {
-				printf("D negative @ CPU_%d, i = %d, j = %d, lambda[l] = %g, rho[l] = %g\n", CPU_Rank, i, j, lambda[l], rho);
-				printf("T[l]^3 = %g, kappa[l] = %g, STEFANK = %g\n", pow(T[l], 3.0), kappa[l], STEFANK);
-			}
+			// if ( D[l] < 0.0 ) {
+			// 	printf("D negative @ CPU_%d, i = %d, j = %d, lambda[l] = %g, rho[l] = %g\n", CPU_Rank, i, j, lambda[l], rho);
+			// 	printf("T[l]^3 = %g, kappa[l] = %g, STEFANK = %g\n", pow(T[l], 3.0), kappa[l], STEFANK);
+			// }
 		}
 	}
+
+	BoundaryConditionsFLD(Darr, Darr);
 
 	if ( RadiationDebug ) {
 		int check_neg = 0;
@@ -406,7 +438,7 @@ void ComputeRadTransCoeffs(gas_density, dt)
 			}
 
 			/* Coefficient for T_{ij}^{n+1} ie cell l at next timestep level */
-			B[l] = 1.0 - (U1[l] + U2[l] + U3[l] + U4[l]);
+			B[l] = 1.0 + (U1[l] + U2[l] + U3[l] + U4[l]);
  		}
  	}
 	
@@ -414,11 +446,11 @@ void ComputeRadTransCoeffs(gas_density, dt)
  	if ( RadiationDebug ) {
  		int check_neg = 0;
     int check_zero = 0;
-		CheckField(U1arr, check_neg, check_zero, "ComputeRadTransCoeffs");
-		CheckField(U2arr, check_neg, check_zero, "ComputeRadTransCoeffs");
-		CheckField(U3arr, check_neg, check_zero, "ComputeRadTransCoeffs");
-		CheckField(U4arr, check_neg, check_zero, "ComputeRadTransCoeffs");
-		CheckField(Barr, check_neg, check_zero, "ComputeRadTransCoeffs");
+		CheckField(U1arr, check_neg, check_zero, "ComputeRadTransCoeffs - U1");
+		CheckField(U2arr, check_neg, check_zero, "ComputeRadTransCoeffs - U2");
+		CheckField(U3arr, check_neg, check_zero, "ComputeRadTransCoeffs - U3");
+		CheckField(U4arr, check_neg, check_zero, "ComputeRadTransCoeffs - U4");
+		CheckField(Barr, check_neg, check_zero, "ComputeRadTransCoeffs - B");
  	}
 }
 
@@ -470,30 +502,32 @@ real ApplyOuterBC(T1, T2)
 	return Treturn;
 }
 
-real FLDConditionCFL()
-	// Input N/A
+real FLDConditionCFL(gas_density)
+	// Input
+	PolarGrid *gas_density;
 {
 	// Declaration
 	int i, j, l, ns;
-	real *D;
+	real *D, *sigma;
 	real old_dt, new_dt=1.0E30, factor;
 
 	// Assignment
 	ns = Darr->Nsec;
 	D  = Darr->Field;
+	sigma = gas_density->Field;
 
 	// Constants
-	factor = 0.1;
+	factor = 0.9;
 
 	// Function
-	for (i = One_or_active; i < MaxMO_or_active; i++) {
+	for (i = One_or_active+1; i < MaxMO_or_active; i++) {
 		for (j = 0; j < ns; j++) {
 			l = j + i*ns;
-			old_dt = factor*DiffRsup[i]*DiffRsup[i]/fabs(D[l]);
+			old_dt = factor*DiffRsup[i]*DiffRsup[i]/fabs(D[l]/CV/sigma[l]);
 			if ( old_dt < new_dt ) {
 				new_dt = old_dt;
 			}
-			old_dt = factor*Rmed[i]*Rmed[i]*DTHETA*DTHETA/fabs(D[l]);
+			old_dt = factor*Rmed[i]*Rmed[i]*DTHETA*DTHETA/fabs(D[l]/CV/sigma[l]);
 			if ( old_dt < new_dt ) {
 				new_dt = old_dt;
 			}
@@ -511,10 +545,10 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
 	real timestep;
 {
 	// Declaration
-	int i, j, l, nr, ns, nstep, first_i=0;
+	int i, j, l, nr, ns, nstep;
 	int im, ip, jm, jp;
 	int lim, lip, ljm, ljp;
-	real *density, *T, *energy, *Tnew, *Qirrrt;
+	real *density, *T, *energy, *Tnew;
 	real *U1, *U2, *U3, *U4;
 	real U1T, U2T, U3T, U4T, CT;
 	real dt_FLD, dt_fld, dt, dt_remainder;
@@ -531,16 +565,13 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
 	U3 = U3arr->Field;
 	U4 = U4arr->Field;
 	Tnew = TempGuess->Field;
-	if ( RayTracingHeating ) {
-		Qirrrt = QirrRT->Field;
-	}
 	dt_remainder = 0.0;
 
 	// Function
 	/* Use FLD coefficients to find how many explicit FLD sub-cycles are needed per hydro timestep */
-	dt_fld = FLDConditionCFL();
+	dt_fld = FLDConditionCFL(gas_density);
 	MPI_Allreduce(&dt_fld, &dt_FLD, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-	if ( dt_FLD >  timestep ) {
+	if ( dt_FLD >=  timestep ) {
     FLDTimeStepsCFL = 1;
     dt = timestep;
   } else {
@@ -586,6 +617,7 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
 				T[l] = Tnew[l];
   		}
   	}
+  	BoundaryConditionsFLD(Temperature, Temperature);
   	if ( debug ) {
   		int check_neg = 1;
     	int check_zero = 1;
@@ -634,6 +666,7 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
 				T[l] = Tnew[l];
   		}
   	}
+  	BoundaryConditionsFLD(Temperature, Temperature);
   }
   // Debug
   if ( debug ) {

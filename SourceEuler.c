@@ -173,7 +173,7 @@ void InitEuler (Vr, Vt, Rho, Energy)
   ComputePressureField (Rho, Energy);
   ComputeTemperatureField (Rho, Energy);
   if ( ExplicitRadTransport ) {
-    SetTemperatureBoundaries();
+    BoundaryConditionsFLD(Temperature, Temperature);
     ComputeNewEnergyField(Rho, Energy);
     ComputeSoundSpeed(Rho, Energy);
     ComputePressureField(Rho, Energy);
@@ -433,14 +433,14 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
             SubStep4_Explicit_Irr(dt);
             ComputeNewEnergyField(Rho, EnergyNew);
           } else {
-            SubStep4 (Rho, EnergyNew, dt);
+            SubStep4 (Rho, EnergyNew, bsys, dt);
           }
         }
 	      ActualiseGas (Energy, EnergyNew);
       }
-      // if ( HydroOn ) {
+      if ( HydroOn ) {
         Transport (Rho, Vrad, Vtheta, Energy, Label, dt);
-      // }
+      }
       if ( debug ) {
       	int check_neg = 0;
       	int check_zero = 0;
@@ -458,9 +458,12 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       mdcp = CircumPlanetaryMass (Rho, sys);
       exces_mdcp = mdcp - mdcp0;
     }
-
     PhysicalTime += dt;
     timestep_counter++;
+    if ( (timestep_counter % 100) == 0 ) {
+    	timestep_counter = 0;
+    	masterprint("t = %g", PhysicalTime);
+    }
   }
   masterprint ("\n");
 }
@@ -828,7 +831,7 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   // if ( Adiabatic ) {
   //   real dt_e;
   //   dt_e = EnergyConditionCFL(energy);
-  //   if (dt_e < newdt) {
+  //   if ( dt_e < newdt ) {
   //     newdt = dt_e;
   //   }
   // }
@@ -1308,11 +1311,11 @@ real EnergyConditionCFL(Energy)
   }
 
   // Constants
-  factor = 2.0;
+  factor = 1.0;
 
   // Function
 #pragma omp parallel for private(j, l, dedt, dt, newdt)
-  for (i = 0; i < nr; i++) {
+  for (i = One_or_active; i < MaxMO_or_active; i++) {
     for (j = 0; j < ns; j++) {
       l = j + i*ns;
       dedt_abs = 0.0;
@@ -1329,8 +1332,12 @@ real EnergyConditionCFL(Energy)
         dedt_abs += fabs(qplus[l]);
         dedt += qplus[l];
       }
-      old_dt = energy[l]/dedt_abs;
-      old_dt /= factor;
+      if ( dedt_abs == 0.0 ) {
+      	old_dt = 1.0E30;
+      } else {
+      	old_dt = energy[l]/dedt_abs;
+      	old_dt /= factor;
+      }
       if ( old_dt < new_dt ) {
         new_dt = old_dt;
       }

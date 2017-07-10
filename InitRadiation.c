@@ -377,6 +377,7 @@ void SetTemperatureBoundaries()
 {
 	// Declaration
 	int i, j, l, ns, nr;
+	int lim, lip;
 	real *T;
 
 	nr = Temperature->Nrad;
@@ -384,17 +385,58 @@ void SetTemperatureBoundaries()
 	T = Temperature->Field;
 
 	if ( CPU_Rank == 0 ) {
-		i = 0;
+		i = 1;
 		for (j = 0; j < ns; j++) {
 			l = j+i*ns;
-			T[l] = TINNER;
+	 		lim = l-ns;
+	 		lip = l+ns;
+			T[lim] = ApplyInnerBC(T[l], T[lip]);
 		}
 	}
 	if ( CPU_Rank == CPU_Highest ) {
-		i = nr-1;
+	 	i = nr-2;
+	 	for (j = 0; j < ns; j++) {
+	 		l = j+i*ns;
+	 		lim = l-ns;
+	 		lip = l+ns;
+	 		T[lip] = ApplyOuterBC(T[l], T[lim]);
+	 	}
+	}
+}
+
+
+void BoundaryConditionsFLD(out_field, ref_field)
+	// Input
+	PolarGrid *out_field;
+	PolarGrid *ref_field;
+{
+	// Declaration
+	int i, j, l, nr, ns;
+	int lim, lip;
+	real *out_data, *ref_data;
+
+	// Assignment
+	nr = ref_field->Nrad;
+	ns = ref_field->Nsec;
+	out_data = out_field->Field;
+	ref_data = ref_field->Field;
+
+	if ( CPU_Rank == 0 ) {
+		i = 1;
 		for (j = 0; j < ns; j++) {
 			l = j+i*ns;
-			T[l] = TOUTER;
+	 		lim = l-ns;
+	 		lip = l+ns;
+			out_data[lim] = ApplyInnerBC(ref_data[l], ref_data[lip]);
 		}
+	}
+	if ( CPU_Rank == CPU_Highest ) {
+	 	i = nr-2;
+	 	for (j = 0; j < ns; j++) {
+	 		l = j+i*ns;
+	 		lim = l-ns;
+	 		lip = l+ns;
+	 		out_data[lip] = ApplyOuterBC(ref_data[l], ref_data[lim]);
+	 	}
 	}
 }

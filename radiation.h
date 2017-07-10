@@ -23,6 +23,7 @@ extern boolean Irradiation;
 extern boolean VarDiscHeight;
 extern boolean RayTracingHeating;
 extern boolean ExplicitRayTracingHeating;
+extern boolean ImplicitRayTracingHeating;
 extern boolean ImplicitRadiative;
 extern boolean InnerBCCons;
 extern boolean InnerBCGrad;
