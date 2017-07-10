@@ -399,7 +399,11 @@ void ReadVariables(filename)
   if (( *RADTRANSPORT == 'E' ) || ( *RADTRANSPORT == 'e' )) {
     RadTransport = YES;
     ExplicitRadTransport = YES;
-  } 
+  }
+  if (( *RADTRANSPORT == 'I' ) || ( *RADTRANSPORT == 'i' )) {
+    RadTransport = YES;
+    ExplicitRadTransport = NO;
+  }
   if (( *INNERTEMPBC == 'C' ) || ( *INNERTEMPBC == 'c' )) {
     InnerBCCons = YES;
   }
