@@ -18,6 +18,7 @@ extern boolean Relative_Diff;
 extern boolean Residual_Diff;
 extern boolean Relative_Max;
 extern boolean Residual_Max;
+extern boolean Relative_Source;
 extern boolean RadCooling;
 extern boolean Irradiation;
 extern boolean VarDiscHeight;

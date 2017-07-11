@@ -54,6 +54,7 @@ boolean         Write_OpticalDepths = NO;
 boolean         ExplicitRadTransport = NO;
 boolean         AnalyticCooling = NO;
 boolean         Constant_Opacity = NO;
+boolean					Relative_Source = NO;
 
 
 void var(name, ptr, type, necessary, deflt)
@@ -449,7 +450,7 @@ void ReadVariables(filename)
     Relative_Diff = YES;
   }
   if (( Residual_Max == NO ) && ( Residual_Diff == NO ) && ( Relative_Max == NO ) && ( Relative_Diff == NO )) {
-    Relative_Diff = YES;
+    Relative_Source = YES;
   }
   if (( RadTransport ) && ((( *IMPLICITRAD == 'Y' ) || ( *IMPLICITRAD == 'Y' )))) {
     ImplicitRadiative = YES;
