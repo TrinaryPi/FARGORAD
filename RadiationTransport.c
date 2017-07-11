@@ -298,7 +298,8 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 
 	 	// Debug
 	 	if (( iteration >= MAXITERATIONS ) && ( norm > tol )) {
-	 		fprintf (stderr, "Max number of iterations has been reached without convergence. Exiting.\n");
+	 		masterprint("Max number of iterations has been reached without convergence. Exiting.\n");
+	 		masterprint("Norm = %g, Convergence Criteria = %g, Last MaxChange = %g\n", norm, tol, MaxChange);
 			DumpRadiationFields(Temperature);
 			MPI_Finalize();
 			exit(1);
