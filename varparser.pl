@@ -12,7 +12,7 @@ print PARAM <<EOF;
 /* compilation. Do not edit.    */
 /* See perl script              */
 /* "varparser.pl" for details   */
-/*                              */
+/*  another comment             */
 /********************************/
 EOF
 print PARAMNOEX <<EOF;
