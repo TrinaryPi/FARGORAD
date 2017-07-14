@@ -711,8 +711,8 @@ void ComputeSingleSourceRT (gas_density)
 	real *cellTau, *gridTau, *QRT, *H, *Sigma, *Rkappa, *T;
 	real rho, Skappa;
 	real Tstar, Rs, Ts, Fs, dr;
-	real *Recv_cellTauBuffer = NULL, *Recv_gridTauBuffer;
-	real *Send_gridTauBuffer = NULL, *Send_cellTauBuffer;
+	real *Recv_cellTauBuffer = NULL, *Recv_gridTauBuffer = NULL;
+	real *Send_gridTauBuffer = NULL, *Send_cellTauBuffer = NULL;
 	real c1;
 
 	// Assignment
@@ -774,8 +774,9 @@ void ComputeSingleSourceRT (gas_density)
 		Send_gridTauBuffer = (real *)malloc(global_real_size);
 		// Create array of stride lengths
 		displs[0] = 0;
-		for (i = 1; i < CPU_Number; i++)
+		for (i = 1; i < CPU_Number; i++) {
 			displs[i] = displs[i-1] + sizes[i-1];
+		}
 	}
 
 	/* Gather cell tau values to Master, and then
@@ -795,11 +796,7 @@ void ComputeSingleSourceRT (gas_density)
 			for (j = 0; j < ns; j++) {
 				l = j+i*ns;
 				lim = l-ns;
-				if (( RadTransport ) && ( i == 1 )) {
-					Send_gridTauBuffer[l] = 0.0;
-				} else {
-					Send_gridTauBuffer[l] = Send_gridTauBuffer[lim] + Recv_cellTauBuffer[lim];
-				}
+				Send_gridTauBuffer[l] = Send_gridTauBuffer[lim] + Recv_cellTauBuffer[lim];
 			}
 		}
 	}
@@ -840,8 +837,6 @@ void ComputeSingleSourceRT (gas_density)
  	if ( RadiationDebug ) {
  		int check_neg = 1;
     int check_zero = 0;
- 		CheckField(Tau_cell, check_neg, check_zero, "ComputeSingleSourceRT");
- 		CheckField(Tau_grid, check_neg, check_zero, "ComputeSingleSourceRT");
  		CheckField(QirrRT, check_neg, check_zero, "ComputeSingleSourceRT");
  	}
 }
