@@ -148,7 +148,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
   					residual[l] = B[l]*Tguess[l] - U1[l]*Tguess[lim] - U2[l]*Tguess[lip] - U3[l]*Tguess[ljm] - U4[l]*Tguess[ljp] - Rij[l];
   					Tguess[l] = Tguess_old[l] - omegaOpt[i]*residual[l]/B[l];
 
-  					change = fabs(Tguess[l] - Tguess_old[l]);
+  					change = fabs(Tguess[l] - Tguess_old[l])/fabs(Tguess_old[l]);
   					if ( change > maxchange ) {
   						maxchange = change;
   					}
@@ -219,7 +219,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	  				residual[l] = B[l]*Tguess[l] - U1[l]*Tguess[lim] - U2[l]*Tguess[lip] - U3[l]*Tguess[ljm] - U4[l]*Tguess[ljp] - Rij[l];
 	  				Tguess[l] = Tguess_old[l] - omegaOpt[i]*residual[l]/B[l];
 
-	  				change = fabs(Tguess[l] - Tguess_old[l]);
+	  				change = fabs(Tguess[l] - Tguess_old[l])/fabs(Tguess_old[l]);
   					if ( change > maxchange ) {
   						maxchange = change;
   					}
