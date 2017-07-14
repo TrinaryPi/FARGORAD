@@ -751,7 +751,7 @@ void ComputeSingleSourceRT (gas_density)
 			cellTau[l] = Skappa*rho*dr;
 		}
 	}
-
+	
 	/* Gather array sizes onto root */
 	if ( CPU_Rank == 0 ) {
 		sizes  = (int *)malloc(sizeof(int) * CPU_Number);
@@ -761,8 +761,8 @@ void ComputeSingleSourceRT (gas_density)
 
 	/* Trim local arrays ready for sending and 
 	   prime receive buffer with cell tau values. */
-	Send_cellTauBuffer = (real *)malloc((active_size)*sizeof(real));
-	Recv_gridTauBuffer = (real *)malloc((active_size)*sizeof(real));
+	Send_cellTauBuffer = (real *)malloc(active_size*sizeof(real));
+	Recv_gridTauBuffer = (real *)malloc(active_size*sizeof(real));
 	memcpy(Send_cellTauBuffer, &cellTau[Zero_or_active*ns], active_size*sizeof(real));
 
 	/* On Master CPU create receive and send buffers,
