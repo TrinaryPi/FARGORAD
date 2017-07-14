@@ -5,7 +5,7 @@
 /* compilation. Do not edit.    */
 /* See perl script              */
 /* "varparser.pl" for details   */
-/*                              */
+/*  another comment             */
 /********************************/
 extern	real	DT;
 extern	real	SIGMA0;

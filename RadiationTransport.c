@@ -20,7 +20,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
   real timestep;
 {
 	// Declaration
-	int i, ii, j, l, nr, ns;
+	int i, ii, j, l, nr, ns, first_i, last_i;
 	int lim, lip, ljm, ljp;
 	int iteration;
 	real *T, *Tguess, *Tguess_old;
@@ -63,9 +63,26 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 		/* Instead of an iterative implicit SOR step, carry out FLD with a set of explicit sub-cycles */
 		SubStep4_Explicit(gas_density, gas_energynew, timestep);
 	} else {
+		if ( Relative_Source ) {
+			if ( CPU_Rank == 0 ) {
+				first_i = 1;
+			} else {
+				first_i = 0;
+			}
+			if ( CPU_Rank == CPU_Highest ) {
+				last_i = nr-1;
+			} else {
+				last_i = nr;
+			}
+		} else {
+			first_i = 0;
+			last_i = nr;
+		}
+
 		norm_tmp[0] = 0.0;
 	 	norm_tmp[1] = 0.0;
-	 	for (i = 0; i < nr; i++) {
+	 	
+	 	for (i = first_i; i < last_i; i++) {
 	 		if ( ChebyshevOmega ) {
 	 			omegaOpt[i] = 1.0;
 	 		}
@@ -103,7 +120,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
  				norm_tmp[1] = 0.0;
  			}
 	 		/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
-			BoundaryConditionsFLD(TempGuess, TempGuess);
+			// BoundaryConditionsFLD(TempGuess, TempGuess);
 
 			/* Black-loop over all even numbered cells */
 	 		for (i = One_or_active; i < MaxMO_or_active; i++) {
@@ -163,7 +180,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	 		}
 
 	 		/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
-			BoundaryConditionsFLD(TempGuess, TempGuess);
+			// BoundaryConditionsFLD(TempGuess, TempGuess);
 			/* Overlap zones communication between neighbouring processors */
 	 		CommunicateFieldBoundaries(TempGuess);
 	 		/* If specified, use Chebyshev acceleration to automatically tune the Over-relaxation parameter, omega, each half timestep */
