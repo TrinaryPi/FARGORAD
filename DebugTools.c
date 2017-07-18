@@ -214,3 +214,12 @@ void CopyDensity(local_density)
 		}
 	}
 }
+
+void freePolarGrid (polargrid)
+	// Input
+	PolarGrid *polargrid;
+{
+	free(polargrid->Field);
+	free(polargrid->Name);
+	free(polargrid);
+}

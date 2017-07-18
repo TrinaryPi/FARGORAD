@@ -1180,7 +1180,7 @@ void SmoothField(input_field)
 	CommunicateFieldBoundaries(smoothed_field);
 	memcpy(&data[0], &smoothed_data[0], nr*ns*sizeof(real));
 	free(kernel);
-	free(smoothed_field);
+	freePolarGrid(smoothed_field);
 }
 
 

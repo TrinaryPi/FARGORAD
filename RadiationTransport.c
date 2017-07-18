@@ -27,6 +27,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	real *B, *U1, *U2, *U3, *U4, *residual, *Rij;
 	real qirrrt=0.0, qirr=0.0;
 	real norm_tmp[2], norm, cvfac, tol;
+	real norm_dem, norm_num;
 	real change, maxchange, MaxChange, MaxChangeFactor=1E-10;
 
 	// Assignment
@@ -46,6 +47,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	// Constants
 	cvfac = timestep*MU*(ADIABATICINDEX-1.0)/R;
 
+	// Function
 	if ( ExplicitRayTracingHeating ) {
 		SubStep4_Explicit_Irr(timestep);
 		ComputeNewEnergyField(gas_density, gas_energynew);
@@ -57,7 +59,6 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	BoundaryConditionsFLD(Temperature, Temperature);
 	BoundaryConditionsFLD(TempGuess, Temperature);
 
-	// Function
 	ComputeRadTransCoeffs(gas_density, timestep);
 	if ( ExplicitRadTransport ) {
 		/* Instead of an iterative implicit SOR step, carry out FLD with a set of explicit sub-cycles */
@@ -101,8 +102,8 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	 		}
 	 	}
 	 	if ( Relative_Source ) {
-	 		MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	 		tol = TOLERANCE*norm_tmp[1];
+	 		MPI_Allreduce(&norm_tmp[1], &norm_dem, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	 		tol = TOLERANCE*norm_dem;
 	 	} else {
 	 		tol = TOLERANCE;
 	 	}
@@ -265,30 +266,28 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 
 			/* norm  = |x^{k} - x^{k-1}| / |x^{k}| - norm_relative_l2 */
 	 		if ( Relative_Diff ) { 
-		 		MPI_Allreduce(&norm_tmp[0], &norm_tmp[0], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-		 		norm = sqrt(norm_tmp[0]);
+		 		MPI_Allreduce(&norm_tmp[0], &norm_num, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		 		norm = sqrt(norm_num);
 		 	}
 	 		/* norm = max(|x^{k} - x^{k-1}| / |x^{k}|) - norm_relative_max */
 	 		if ( Relative_Max ) {
-		 		MPI_Allreduce(&norm_tmp[0], &norm_tmp[0], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+		 		MPI_Allreduce(&norm_tmp[0], &norm, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 		 		// MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 		 		// norm = norm_tmp[0]/norm_tmp[1];
-		 		norm = norm_tmp[0];
 		 	}
 	 		/* norm = |r^{k}| / |b{k}| - norm_residual_l2 */
 	 		if ( Residual_Diff ) {
-		 		MPI_Allreduce(&norm_tmp[0], &norm_tmp[0], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-		 		norm_tmp[0] = sqrt(norm_tmp[0]);
-		 		MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-	 			norm_tmp[1] = sqrt(norm_tmp[1]);
+		 		MPI_Allreduce(&norm_tmp[0], &norm_num, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		 		norm_tmp[0] = sqrt(norm_num);
+		 		MPI_Allreduce(&norm_tmp[1], &norm_dem, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+	 			norm_tmp[1] = sqrt(norm_dem);
 		 		norm = norm_tmp[0]/norm_tmp[1];
 		 	}
 	 		/* norm = max(|r^{k}| / |b{k}|) - norm_residual_max */
 	 		if ( Residual_Max ) {
-		 		MPI_Allreduce(&norm_tmp[0], &norm_tmp[0], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+		 		MPI_Allreduce(&norm_tmp[0], &norm, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 		 		// MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
 		 		// norm = norm_tmp[0]/norm_tmp[1];
-		 		norm = norm_tmp[0];
 		 	}
 		 	if ( Relative_Source ) {
 		 		MPI_Allreduce(&norm_tmp[0], &norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);

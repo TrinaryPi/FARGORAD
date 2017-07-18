@@ -245,3 +245,4 @@ void CopyDensity();
 void SmoothField();
 real *CreateKernel();
 void BoundaryConditionsFLD();
+void freePolarGrid();

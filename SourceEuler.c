@@ -718,7 +718,7 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   real itdbg1, itdbg2, itdbg3, itdbg4, mdtdbg; /* debugging variables */
   real *vt, *vr, dxrad, dxtheta, dvr, dvt, viscr, visct;
   int nstar, nplan, ij;
-  real *xs, *ys, *xp, *yp, *ms, *mp, *Ppair, Pmin, dist, dt_nbod;
+  real *xs, *ys, *xp, *yp, *ms, *mp, *Ppair=NULL, Pmin, dist, dt_nbod;
   real *soundspeed;
   
   soundspeed = SoundSpeed->Field;
@@ -858,6 +858,7 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   //   }
   // }
   return (int)(ceil(deltaT/newdt));
+  free(Ppair);
 }
 
 
