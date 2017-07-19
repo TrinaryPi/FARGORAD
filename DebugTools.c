@@ -177,7 +177,7 @@ void DumpRadiationFields(Field)
 		if ( VarDiscHeight ) {
 			WriteDiskPolar(DiscHeight, 9999);
 		}
-		if (( RadTransport ) || ( Irradiation ) || ( RadCooling ) || (RayTracingHeating )) {
+		if (( RadTransport ) || ( Irradiation ) || ( RadCooling ) || ( RayTracingHeating )) {
 			WriteDiskPolar(RKappaval, 9999);
 		}
 	}

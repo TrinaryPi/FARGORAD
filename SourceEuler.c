@@ -438,7 +438,9 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       }
       ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       if ( HydroOn ) {
+				masterprint("Starting Transport Substep...");
         Transport (Rho, Vrad, Vtheta, Energy, Label, dt);
+				masterprint("Done.\n");
       }
       ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       CopyDensity(Rho);
@@ -828,13 +830,13 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
     	newdt = dt;
     }
   }
-  if ( Adiabatic ) {
-    real dt_e;
-    dt_e = EnergyConditionCFL(energy);
-    if ( dt_e < newdt ) {
-      newdt = dt_e;
-    }
-  }
+  // if ( Adiabatic ) {
+  //   real dt_e;
+  //   dt_e = EnergyConditionCFL(energy);
+  //   if ( dt_e < newdt ) {
+  //     newdt = dt_e;
+  //   }
+  // }
   if ( deltaT < newdt ) {
     newdt = deltaT;
   }
