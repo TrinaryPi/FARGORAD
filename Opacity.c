@@ -224,7 +224,7 @@ void ComputeRKappa (Sigma)
 		for (i = 0; i < nr; i++) {
 			for (j = 0; j < ns; j++) {
 				l = j+i*ns;
-				rkappa[l] = 1.5E7;
+				rkappa[l] = KAPPAR_CONSTANT;
 			}
 		}
 	} else if ( PowerLaw_Opacity ) {

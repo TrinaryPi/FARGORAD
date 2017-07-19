@@ -446,8 +446,8 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       	int check_zero = 0;
       	CheckField(Vrad, check_neg, check_zero, "Transport");
       	CheckField(Vtheta, check_neg, check_zero, "Transport");
-      	check_neg = 1;
-      	check_zero = 1;
+      	check_neg = 0;
+      	check_zero = 0;
       	CheckField(Rho, check_neg, check_zero, "Transport");
       	if ( Adiabatic ) {
       		CheckField(Energy, check_neg, check_zero, "Transport");

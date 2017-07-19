@@ -122,3 +122,4 @@ extern	char	LIVEBODIES[512];
 extern	char	WRITEOPTICALDEPTHS[512];
 extern	char	ANALYTICCOOLING[512];
 extern	real	EFFICIENCY;
+extern	real	KAPPAR_CONSTANT;

@@ -40,8 +40,14 @@ real AspectRatio (rad)
   int i = 0;
   real aspectratio, rmin, rmax, scale;
   if ( VarDiscHeight ) {
-  	while (Rmed[i] <= rad) i++;
-  	aspectratio = MeanDiscHeight[i]/rad;
+		if (( rad < Rmed[0] ) || ( rad > Rmed[NRAD-1] )) {
+			aspectratio = ASPECTRATIO;
+		} else {
+  		while (Rmed[i] <= rad) {
+				i++;
+			}
+  		aspectratio = MeanDiscHeight[i]/rad;
+		}
   } else {
   	aspectratio = ASPECTRATIO;
   }
