@@ -468,7 +468,7 @@ void ReadVariables(filename)
       ExplicitRayTracingHeating = YES;
     }
   }
-  if ((( RadCooling ) || ( RadTransport ) || ( Irradiation ) || ( RayTracingHeating ))) {
+  if (( RadCooling ) || ( RadTransport ) || ( Irradiation ) || ( RayTracingHeating )) {
     VarDiscHeight = YES;
   }
 

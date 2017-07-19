@@ -55,13 +55,12 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 			}
 		}
 	}
+
 	// Output
 	MPI_Allreduce (&flag1, &flagNonFinite, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 	if ( flagNonFinite != 0 ) {
     masterprint("Error: Non-finite value in %s (%s). Exiting.\n", testField->Name, note_string);
-    if ( RadiationDebug ) {
-			DumpRadiationFields(testField);
-		}
+    DumpRadiationFields(testField);
    	MPI_Finalize();
 		exit(flagNonFinite);
 	}
@@ -69,9 +68,7 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 		MPI_Allreduce (&flag2, &flagNegative, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 		if ( flagNegative != 0 ) {
 			masterprint("Error: Negative value in %s (%s). Exiting.\n", testField->Name, note_string);
-			if ( RadiationDebug ) {
-				DumpRadiationFields(testField);
-			}
+			DumpRadiationFields(testField);
 			MPI_Finalize();
 			exit(flagNegative);
 		}
@@ -80,9 +77,7 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 		MPI_Allreduce (&flag3, &flagZero, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 		if ( flagZero != 0 ) {
 			masterprint("Error: Zero value in %s (%s). Exiting.\n", testField->Name, note_string);
-			if ( RadiationDebug ) {
-				DumpRadiationFields(testField);
-			}
+			DumpRadiationFields(testField);
 			MPI_Finalize();
 			exit(flagZero);
 		}
@@ -182,7 +177,9 @@ void DumpRadiationFields(Field)
 		if ( VarDiscHeight ) {
 			WriteDiskPolar(DiscHeight, 9999);
 		}
-		WriteDiskPolar(RKappaval, 9999);
+		if (( RadTransport ) || ( Irradiation ) || ( RadCooling ) || (RayTracingHeating )) {
+			WriteDiskPolar(RKappaval, 9999);
+		}
 	}
 	WriteDiskPolar(Density, 9999);
 	WriteDiskPolar(Temperature, 9999);

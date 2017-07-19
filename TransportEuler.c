@@ -429,7 +429,9 @@ void ComputeVelocities (Rho, Vrad, Vtheta)
 	vr[l] = (rp[lim]+rm[l])/(rho[l]+rho[lim]+1e-20);
       vt[l] = (tp[ljm]+tm[l])/(rho[l]+rho[ljm]+1e-15)/Rmed[i]-Rmed[i]*OmegaFrame;
 				/* It was the angular momentum */
-      if (rho[l] < 1.0e-10) rho[l]=1.0e-10;
+      if (rho[l] < 1.0e-10) {
+      	rho[l]=1.0e-10;
+      }
     }
   }
 }

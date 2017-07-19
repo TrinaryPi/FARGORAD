@@ -271,8 +271,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     	StarTaper = PhysicalTime/(STARTAPER*2.0*M_PI); 
     	StarTaper = (StarTaper > 1.0 ? 1.0 : pow(sin(StarTaper*M_PI/2.0), 2.0));
     }
-    CopyDensity(Rho);
-
     if ( IsDisk ) {
       CommunicateBoundaries (Rho, Vrad, Vtheta, Energy, Label);
       if ( !SloppyCFL ) {
@@ -438,22 +436,24 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         }
 	      ActualiseGas (Energy, EnergyNew);
       }
+      ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       if ( HydroOn ) {
         Transport (Rho, Vrad, Vtheta, Energy, Label, dt);
       }
+      ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
+      CopyDensity(Rho);
       if ( debug ) {
       	int check_neg = 0;
       	int check_zero = 0;
       	CheckField(Vrad, check_neg, check_zero, "Transport");
       	CheckField(Vtheta, check_neg, check_zero, "Transport");
-      	check_neg = 0;
-      	check_zero = 0;
+      	check_neg = 1;
+      	check_zero = 1;
       	CheckField(Rho, check_neg, check_zero, "Transport");
       	if ( Adiabatic ) {
       		CheckField(Energy, check_neg, check_zero, "Transport");
       	}
       }
-      ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       ComputeTemperatureField (Rho, Energy);
       mdcp = CircumPlanetaryMass (Rho, sys);
       exces_mdcp = mdcp - mdcp0;
@@ -828,13 +828,13 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
     	newdt = dt;
     }
   }
-  // if ( Adiabatic ) {
-  //   real dt_e;
-  //   dt_e = EnergyConditionCFL(energy);
-  //   if ( dt_e < newdt ) {
-  //     newdt = dt_e;
-  //   }
-  // }
+  if ( Adiabatic ) {
+    real dt_e;
+    dt_e = EnergyConditionCFL(energy);
+    if ( dt_e < newdt ) {
+      newdt = dt_e;
+    }
+  }
   if ( deltaT < newdt ) {
     newdt = deltaT;
   }
