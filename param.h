@@ -125,3 +125,5 @@ extern	real	EFFICIENCY;
 extern	real	KAPPAR_CONSTANT;
 extern	char	POTENTIALTRANSITION[512];
 extern	real	POTENTIALTRANSITIONTIME;
+extern	char	VISCOUSHEATING[512];
+extern	char	PDIVVWORK[512];

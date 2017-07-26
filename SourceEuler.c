@@ -43,6 +43,8 @@ static int nsteps_av = 0;
 extern boolean  AnalyticCooling;
 extern boolean ExplicitRadTransport;
 extern int FLDTimeStepsCFL;
+extern boolean ViscousHeating;
+extern boolean pdivvWork;
 
 
 boolean DetectCrash (array)
@@ -648,7 +650,7 @@ void SubStep3 (Rho, dt)
   for (i = 0; i < nr; i++) {
     for (j = 0; j < ns; j++) {
       l = j+i*ns;
-      if ( !RadiativeOnly ) {
+      if ( pdivvWork ) {
         div_temp = divergence[l];
       }
       if ( !ImplicitRadiative ) {
@@ -1147,42 +1149,42 @@ void ComputeQplus (Rho)
   Trp = TAURP->Field;
   Tpp = TAUPP->Field;
 
-  // Function
-//   if ( !RadiativeOnly ) {
-// #pragma omp for private (j, l, viscosity)
-//     /* We calculate the heating source term Qplus from i=1 */
-//     for (i = 1; i < nr; i++) { /* Trp defined from i=1 */
-//       viscosity = FViscosity (Rmed[i]); /* Global_Bufarray holds cs */
-//       for (j = 0; j < ns; j++) {
-//         l = j+i*ns;
-//         if ( viscosity != 0.0 ) {
-//           qplus[l] = 0.5/viscosity/dens[l]*(Trr[l]*Trr[l] + \
-//            Trp[l]*Trp[l] +  \
-//            Tpp[l]*Tpp[l] );
-//           qplus[l] += (2.0/9.0)*viscosity*dens[l]*divergence[l]*divergence[l];
-//         } else
-//           qplus[l] = 0.0;
-//       }
-//     }
-//     /* We calculate the heating source term Qplus for i=0 */
-//     i = 0;
-//     r    = Rmed[i];
-//     rip  = Rmed[i+1];
-//     ri2p = Rmed[i+2];
-//     for (j = 0; j < ns; j++) {
-//       l = j+i*ns;
-//       lip = l+ns;
-//       li2p = lip+ns;
-//       qpip = qplus[lip];   /* qplus(i=1,j) */
-//       qpi2p = qplus[li2p]; /* qplus(i=2,j) */
-//       if ( viscosity != 0.0 ) {
-//         /* power-law extrapolation */
-//         qplus[l] = qpip*exp( log(qpip/qpi2p) * log(r/rip) / log(rip/ri2p) );
-//       } else {
-//         qplus[l] = 0.0;
-//       }
-//     }
-//   } else {
+  //Function
+  if ( ViscousHeating ) {
+#pragma omp for private (j, l, viscosity)
+    /* We calculate the heating source term Qplus from i=1 */
+    for (i = 1; i < nr; i++) { /* Trp defined from i=1 */
+      viscosity = FViscosity (Rmed[i]); /* Global_Bufarray holds cs */
+      for (j = 0; j < ns; j++) {
+        l = j+i*ns;
+        if ( viscosity != 0.0 ) {
+          qplus[l] = 0.5/viscosity/dens[l]*(Trr[l]*Trr[l] + \
+           Trp[l]*Trp[l] +  \
+           Tpp[l]*Tpp[l] );
+          qplus[l] += (2.0/9.0)*viscosity*dens[l]*divergence[l]*divergence[l];
+        } else
+          qplus[l] = 0.0;
+      }
+    }
+    /* We calculate the heating source term Qplus for i=0 */
+    i = 0;
+    r    = Rmed[i];
+    rip  = Rmed[i+1];
+    ri2p = Rmed[i+2];
+    for (j = 0; j < ns; j++) {
+      l = j+i*ns;
+      lip = l+ns;
+      li2p = lip+ns;
+      qpip = qplus[lip];   /* qplus(i=1,j) */
+      qpi2p = qplus[li2p]; /* qplus(i=2,j) */
+      if ( viscosity != 0.0 ) {
+        /* power-law extrapolation */
+        qplus[l] = qpip*exp( log(qpip/qpi2p) * log(r/rip) / log(rip/ri2p) );
+      } else {
+        qplus[l] = 0.0;
+      }
+    }
+  } else {
 #pragma omp for  
     for (i = 0; i < nr; i++) {
       for (j = 0; j < ns; j++) { 
@@ -1190,7 +1192,7 @@ void ComputeQplus (Rho)
         qplus[l] = 0.0;
       }
     }
-  // }
+  }
 }
 
 real EnergyConditionCFL(Energy)
@@ -1369,14 +1371,14 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
     }
   } else {
     /* Find number of cooling timesteps per hydro timestep */
-    if ( dt_energy >  dt_hydro ) { 
+    // if ( dt_energy >  dt_hydro ) { 
       RadCoolTimeStepsCFL = 1;
       dt = dt_hydro;
-    } else {
-      RadCoolTimeStepsCFL = (int)(dt_hydro/dt_energy);
-      dt = dt_energy;
-      dt_remainder = dt_hydro - (real)(RadCoolTimeStepsCFL*dt_energy);
-    }
+    // } else {
+    //   RadCoolTimeStepsCFL = (int)(dt_hydro/dt_energy);
+    //   dt = dt_energy;
+    //   dt_remainder = dt_hydro - (real)(RadCoolTimeStepsCFL*dt_energy);
+    // }
     dt_hydro_av += dt_hydro;
     dt_energy_av += dt_energy;
     nsteps_av += RadCoolTimeStepsCFL;

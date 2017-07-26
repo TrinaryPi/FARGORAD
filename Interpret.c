@@ -56,6 +56,8 @@ boolean         AnalyticCooling = NO;
 boolean         Constant_Opacity = NO;
 boolean					Relative_Source = NO;
 boolean					PotentialTransition = NO;
+boolean					ViscousHeating = YES;
+boolean					pdivvWork = YES;
 
 
 void var(name, ptr, type, necessary, deflt)
@@ -322,6 +324,14 @@ void ReadVariables(filename)
     }
   }
 
+  if (( *VISCOUSHEATING == 'N' ) || ( *VISCOUSHEATING == 'n' )) {
+  	ViscousHeating = NO;
+  }
+
+  if (( *PDIVVWORK == 'N' ) || ( *PDIVVWORK == 'n' )) {
+  	pdivvWork = NO;
+  }
+
   /* Self-Gravity Module Parameters */
   if (( *SELFGRAVITY == 'Y' ) || ( *SELFGRAVITY == 'y' )) {
     SelfGravity = YES;
@@ -350,6 +360,8 @@ void ReadVariables(filename)
   /* General Radiation Module Parameters */
   if (( *RADIATIVEONLY == 'Y' ) || ( *RADIATIVEONLY == 'y' )) {
     RadiativeOnly = YES;
+    ViscousHeating = NO;
+    pdivvWork = NO;
   }
   if (( *RADCOOLING == 'Y' ) || ( *RADCOOLING == 'y' )) {
     RadCooling = YES;
