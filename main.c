@@ -103,6 +103,7 @@ main(argc, argv)
       }
       if ( strchr (argv[i], 'r') ) {
         RadiationDebug = YES;
+        debug = YES;
       }
       if ( strchr (argv[i], 'i') ) {
 	      StoreSigma = YES; 

@@ -44,9 +44,7 @@ void DerivMotionRK5 (q_init, masses, deriv, np, ns, dt, feelothers, binfeelother
           acomx -= G*masses[i]*masses[jp]*(x[jp]-x[i])/dist/dist/dist;    // Indirect term from planets on the binary
           acomy -= G*masses[i]*masses[jp]*(y[jp]-y[i])/dist/dist/dist;
         }
-
       }
-
     }
     for (i = 0; i < ns; i++) {
       derivx[i] = vx[i];
@@ -60,7 +58,6 @@ void DerivMotionRK5 (q_init, masses, deriv, np, ns, dt, feelothers, binfeelother
           derivvx[i] -= G*masses[j]*(x[i]-x[j])/dist/dist/dist;           // Direct term from other star
           derivvy[i] -= G*masses[j]*(y[i]-y[j])/dist/dist/dist;
         }
-
       }
       for (j = 0; j < np; j++){
         if (binfeelothers[i] == YES){

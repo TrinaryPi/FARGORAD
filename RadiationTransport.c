@@ -296,13 +296,13 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 		 	/* Overlap zones communication between neighbouring processors */
 	 		CommunicateFieldBoundaries(TempGuess);
 	  	iteration++;
-	  	if ( RadiationDebug ) {
-	 			int check_neg = 0;
-	    	int check_zero = 0;
-	    	char str[256];
-	    	sprintf(str, "SubStep4 - Iteration %d - norm = %g", iteration, norm);
-				CheckField(TempGuess, check_neg, check_zero, str);
-	 		}
+	  	// if ( RadiationDebug ) {
+	 		// 	int check_neg = 0;
+	   //  	int check_zero = 0;
+	   //  	char str[256];
+	   //  	sprintf(str, "SubStep4 - Iteration %d - norm = %g", iteration, norm);
+				// CheckField(TempGuess, check_neg, check_zero, str);
+	 		// }
 	 	}
 
 	 	NormAv += norm;
@@ -316,13 +316,13 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	 		}
 	 	}
 
+	 	// Debug
 	 	if ( RadiationDebug ) {
 	 		int check_neg = 1;
 	    int check_zero = 1;
 			CheckField(Temperature, check_neg, check_zero, "SubStep4");
 	 	}
 
-	 	// Debug
 	 	if (( iteration >= MAXITERATIONS ) && ( norm > tol )) {
 	 		masterprint("Max number of iterations has been reached without convergence. Exiting.\n");
 	 		masterprint("Norm = %g, Convergence Criteria = %g, Last MaxChange = %g\n", norm, tol, MaxChange);
@@ -490,15 +490,15 @@ void ComputeRadTransCoeffs(gas_density, dt)
  	}
 	
 	// Debug
- 	if ( RadiationDebug ) {
- 		int check_neg = 0;
-    int check_zero = 0;
-		CheckField(U1arr, check_neg, check_zero, "ComputeRadTransCoeffs - U1");
-		CheckField(U2arr, check_neg, check_zero, "ComputeRadTransCoeffs - U2");
-		CheckField(U3arr, check_neg, check_zero, "ComputeRadTransCoeffs - U3");
-		CheckField(U4arr, check_neg, check_zero, "ComputeRadTransCoeffs - U4");
-		CheckField(Barr, check_neg, check_zero, "ComputeRadTransCoeffs - B");
- 	}
+ 	// if ( RadiationDebug ) {
+ 	// 	int check_neg = 0;
+  //   int check_zero = 0;
+		// CheckField(U1arr, check_neg, check_zero, "ComputeRadTransCoeffs - U1");
+		// CheckField(U2arr, check_neg, check_zero, "ComputeRadTransCoeffs - U2");
+		// CheckField(U3arr, check_neg, check_zero, "ComputeRadTransCoeffs - U3");
+		// CheckField(U4arr, check_neg, check_zero, "ComputeRadTransCoeffs - U4");
+		// CheckField(Barr, check_neg, check_zero, "ComputeRadTransCoeffs - B");
+ 	// }
 }
 
 
@@ -665,12 +665,12 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
   		}
   	}
   	BoundaryConditionsFLD(Temperature, Temperature);
-  	if ( debug ) {
-  		int check_neg = 1;
-    	int check_zero = 1;
-    	sprintf(str, "SubStep4 Explicit after sub-cycle %d", nstep);
-    	CheckField(Temperature, check_neg, check_zero, str);
-  	}
+  	// if ( RadiationDebug ) {
+  	// 	int check_neg = 1;
+   //  	int check_zero = 1;
+   //  	sprintf(str, "SubStep4 Explicit after sub-cycle %d", nstep);
+   //  	CheckField(Temperature, check_neg, check_zero, str);
+  	// }
   	ComputeRKappa(gas_density);
   	ComputeRadTransCoeffs(gas_density, timestep);
   }
@@ -715,8 +715,8 @@ void SubStep4_Explicit(gas_density, gas_energy, timestep)
   	}
   	BoundaryConditionsFLD(Temperature, Temperature);
   }
-  // Debug
-  if ( debug ) {
+  //Debug
+  if ( RadiationDebug ) {
   	int check_neg = 1;
     int check_zero = 1;
     CheckField(Temperature, check_neg, check_zero, "SubStep4 Explicit");

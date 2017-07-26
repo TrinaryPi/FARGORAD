@@ -352,7 +352,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     RotatePsys (sys, OmegaFrame*dt);
     /* Now we update gas */
     if ( IsDisk ) {
-      ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       Crashed = DetectCrash (Rho);	/* test for negative density values */
       Crashed = DetectCrash (Energy);	/* test for negative energy values */
       if ( Crashed ) {
@@ -379,27 +378,10 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
 
     	if ( HydroOn ) {
         SubStep1 (Vrad, Vtheta, Rho, dt);
-        if ( debug ) {
-        	int check_neg = 0;
-        	int check_zero = 0;
-        	CheckField(VradInt, check_neg, check_zero, "SubStep1");
-        	CheckField(VthetaInt, check_neg, check_zero, "SubStep1");
-        }
         SubStep2 (Rho, Energy, dt);
-        if ( debug ) {
-        	int check_neg = 0;
-        	int check_zero = 0;
-        	CheckField(VradNew, check_neg, check_zero,"SubStep2");
-        	CheckField(VthetaNew, check_neg, check_zero,"SubStep2");
-        }
         if ( Adiabatic ) {
         	if ( RadiativeOnly ) {
         		ActualiseGas(EnergyInt, Energy);
-        	}
-        	if ( debug ) {
-        		int check_neg = 1;
-        		int check_zero = 1;
-        		CheckField(EnergyInt, check_neg, check_zero, "SubStep2");
         	}
         }
         ActualiseGas (Vrad, VradNew);
@@ -408,13 +390,13 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         ActualiseGas (EnergyInt, Energy);
       }
       ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
-      
       if ( Adiabatic ) {
         ComputeSoundSpeed (Rho, EnergyInt);
+        ComputePressureField (Rho, EnergyInt);
         ComputeQterms(Rho, Vrad, Vtheta, EnergyInt, bsys);
         SubStep3 (Rho, dt);
         if ( RadCooling ) {
-          radcooltimestepcfl = RadCoolConditionCFL(Energy);
+          radcooltimestepcfl = RadCoolConditionCFL(EnergyNew);
           MPI_Allreduce (&radcooltimestepcfl, &dt_rc, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
           SubStep3_RadCool(Rho, EnergyNew, dt, dt_rc);
         }
@@ -424,7 +406,6 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           ComputeTemperatureField (Rho, EnergyNew);
           ComputeRKappa (Rho);
           if ( RayTracingHeating ) {
-          	/* Function for calculating the midplane stellar heating */
             ComputeRayTracingHeating(Rho, bsys);
           }
           if (( !RadTransport) && ( ExplicitRayTracingHeating )) {
@@ -436,36 +417,26 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         }
 	      ActualiseGas (Energy, EnergyNew);
       }
-      ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       if ( HydroOn ) {
-				masterprint("Starting Transport Substep...");
         Transport (Rho, Vrad, Vtheta, Energy, Label, dt);
-				masterprint("Done.\n");
       }
       ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       CopyDensity(Rho);
-      if ( debug ) {
-      	int check_neg = 0;
-      	int check_zero = 0;
-      	CheckField(Vrad, check_neg, check_zero, "Transport");
-      	CheckField(Vtheta, check_neg, check_zero, "Transport");
-      	check_neg = 1;
-      	check_zero = 1;
-      	CheckField(Rho, check_neg, check_zero, "Transport");
-      	if ( Adiabatic ) {
-      		CheckField(Energy, check_neg, check_zero, "Transport");
-      	}
+      if (( RadiationDebug ) && ( Adiabatic )) {
+      	int check_neg = 1;
+      	int check_zero = 1;
+      	CheckField(Energy, check_neg, check_zero, "Transport");
       }
       ComputeTemperatureField (Rho, Energy);
       mdcp = CircumPlanetaryMass (Rho, sys);
       exces_mdcp = mdcp - mdcp0;
     }
     PhysicalTime += dt;
-    timestep_counter++;
-    if ( (timestep_counter % 100) == 0 ) {
-    	timestep_counter = 0;
-    	masterprint("t = %g", PhysicalTime);
-    }
+    // timestep_counter++;
+    // if ( (timestep_counter % 100) == 0 ) {
+    // 	timestep_counter = 0;
+    // 	masterprint("t = %g", PhysicalTime);
+    // }
   }
   masterprint ("\n");
 }
@@ -697,13 +668,6 @@ void SubStep3 (Rho, dt)
       }
     }
   }
-
-  // Debug
-  if ( debug ) {
-    int check_neg = 1;
-    int check_zero = 1;
-    CheckField(EnergyNew, check_neg, check_zero, "SubStep3");
-  }
 }
 
 
@@ -886,13 +850,6 @@ void ComputeSoundSpeed (Rho, Energy)
       }
     }
   }
-
-  // Debug
-  if ( debug ) {
-  	int check_neg = 1;
-    int check_zero = 1;
-    CheckField(SoundSpeed, check_neg, check_zero, "ComputeSoundSpeed");
-  }
 }
 
 void ComputePressureField (Rho, Energy)
@@ -922,12 +879,6 @@ void ComputePressureField (Rho, Energy)
 			}
 		}
 	}
-	// Debug
-	if ( debug ) {
-		int check_neg = 1;
-  	int check_zero = 1;
-  	CheckField(Pressure, check_neg, check_zero, "ComputePressureField");
-	}
 }
 
 
@@ -953,12 +904,6 @@ void ComputeTemperatureField (Rho, energy)
 	      temp[l] = MU/R*(ADIABATICINDEX-1.0)*energ[l]/dens[l];
       }
     }
-  }
-  // Debug
-  if ( debug ) {
-  	int check_neg = 1;
-    int check_zero = 1;
-    CheckField(Temperature, check_neg, check_zero, "ComputeTemperatureField");
   }
 }
 
@@ -1180,40 +1125,6 @@ void DiscMassTaperCalc (gas_density, timestep)
 }
 
 
-void ApplyFloor (gas_density, gas_energy)
-  // Input
-  PolarGrid *gas_density;
-  PolarGrid *gas_energy;
-{
-  // Declaration
-  int nr, ns, i, j, l;
-  real *dens, *energy, Tfloor, EnergySafetyFloor;
-
-  // Assignment
-  nr = gas_density->Nrad;
-  ns = gas_density->Nsec;
-  dens = gas_density->Field;
-  energy = gas_energy->Field;
-
-  // Constants
-  Tfloor = 1.2E-5;
-
-  // Function
-#pragma omp parallel for private(j,l, EnergySafetyFloor)
-  for (i = 0; i < nr; i++) {
-    for (j = 0; j < ns; j++) {
-      l = j+i*ns;
-      if (dens[l] < SigmaSafetyFloor) {
-        dens[l] = SigmaSafetyFloor;
-      }
-      EnergySafetyFloor = dens[l]*Tfloor*R/(MU*(ADIABATICINDEX-1.0));
-      if (energy[l] < EnergySafetyFloor) {
-        energy[l] = EnergySafetyFloor;
-      }
-    }
-  }
-}
-
 void ComputeQplus (Rho)
   // Input
   PolarGrid *Rho;
@@ -1237,56 +1148,49 @@ void ComputeQplus (Rho)
   Tpp = TAUPP->Field;
 
   // Function
-  if ( !RadiativeOnly ) {
-#pragma omp for private (j, l, viscosity)
-      /* We calculate the heating source term Qplus from i=1 */
-      for (i = 1; i < nr; i++) { /* Trp defined from i=1 */
-        viscosity = FViscosity (Rmed[i]); /* Global_Bufarray holds cs */
-        for (j = 0; j < ns; j++) {
-          l = j+i*ns;
-          if ( viscosity != 0.0 ) {
-            qplus[l] = 0.5/viscosity/dens[l]*(Trr[l]*Trr[l] + \
-             Trp[l]*Trp[l] +  \
-             Tpp[l]*Tpp[l] );
-            qplus[l] += (2.0/9.0)*viscosity*dens[l]*divergence[l]*divergence[l];
-          } else
-            qplus[l] = 0.0;
-        }
-      }
-      /* We calculate the heating source term Qplus for i=0 */
-      i = 0;
-      r    = Rmed[i];
-      rip  = Rmed[i+1];
-      ri2p = Rmed[i+2];
-      for (j = 0; j < ns; j++) {
-        l = j+i*ns;
-        lip = l+ns;
-        li2p = lip+ns;
-        qpip = qplus[lip];   /* qplus(i=1,j) */
-        qpi2p = qplus[li2p]; /* qplus(i=2,j) */
-        if ( viscosity != 0.0 ) {
-          /* power-law extrapolation */
-          qplus[l] = qpip*exp( log(qpip/qpi2p) * log(r/rip) / log(rip/ri2p) );
-        } else {
-          qplus[l] = 0.0;
-        }
-      }
-    } else {
+//   if ( !RadiativeOnly ) {
+// #pragma omp for private (j, l, viscosity)
+//     /* We calculate the heating source term Qplus from i=1 */
+//     for (i = 1; i < nr; i++) { /* Trp defined from i=1 */
+//       viscosity = FViscosity (Rmed[i]); /* Global_Bufarray holds cs */
+//       for (j = 0; j < ns; j++) {
+//         l = j+i*ns;
+//         if ( viscosity != 0.0 ) {
+//           qplus[l] = 0.5/viscosity/dens[l]*(Trr[l]*Trr[l] + \
+//            Trp[l]*Trp[l] +  \
+//            Tpp[l]*Tpp[l] );
+//           qplus[l] += (2.0/9.0)*viscosity*dens[l]*divergence[l]*divergence[l];
+//         } else
+//           qplus[l] = 0.0;
+//       }
+//     }
+//     /* We calculate the heating source term Qplus for i=0 */
+//     i = 0;
+//     r    = Rmed[i];
+//     rip  = Rmed[i+1];
+//     ri2p = Rmed[i+2];
+//     for (j = 0; j < ns; j++) {
+//       l = j+i*ns;
+//       lip = l+ns;
+//       li2p = lip+ns;
+//       qpip = qplus[lip];   /* qplus(i=1,j) */
+//       qpi2p = qplus[li2p]; /* qplus(i=2,j) */
+//       if ( viscosity != 0.0 ) {
+//         /* power-law extrapolation */
+//         qplus[l] = qpip*exp( log(qpip/qpi2p) * log(r/rip) / log(rip/ri2p) );
+//       } else {
+//         qplus[l] = 0.0;
+//       }
+//     }
+//   } else {
 #pragma omp for  
-      for (i = 0; i < nr; i++) {
-        for (j = 0; j < ns; j++) { 
-          l = j+i*ns;
-          qplus[l] = 0.0;
-        }
+    for (i = 0; i < nr; i++) {
+      for (j = 0; j < ns; j++) { 
+        l = j+i*ns;
+        qplus[l] = 0.0;
       }
     }
-
-    // Debug
-    if ( debug ) {
-      int check_neg = 1;
-      int check_zero = 0;
-      CheckField(Qplus, check_neg, check_zero, "SubStep3");
-    }
+  // }
 }
 
 real EnergyConditionCFL(Energy)
@@ -1405,9 +1309,6 @@ void ComputeQterms (Rho, Vrad, Vtheta, Energy, bsys)
   if ( !RadiativeOnly ) {
     ComputeViscousTerms (Vrad, Vtheta, Rho);
   }
-  if ( RadTransport ) {
-    ResetTempSourcesSinks();
-  }
   if ( Irradiation ) {
     ComputeQirr(Rho, bsys);
   }
@@ -1515,9 +1416,27 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
   free(densitycv);
 
   // Debug
-  if ( debug ) {
+  if ( RadiationDebug ) {
     int check_zero = 1;
     int check_neg = 1;
     CheckField(Energy, check_neg, check_zero, "SubStep3_RadCool");
   }
 }
+
+void TestFieldOutput(rho, vrad, vtheta, energy, n)
+  PolarGrid *rho;
+  PolarGrid *vrad;
+  PolarGrid *vtheta;
+  PolarGrid *energy;
+  int n;
+{
+  WriteDiskPolar(rho, n);
+  WriteDiskPolar(vrad, n);
+  WriteDiskPolar(vtheta, n);
+  if ( Adiabatic ) {
+    ComputeTemperatureField(rho, energy);
+    WriteDiskPolar(Temperature, n);
+    WriteDiskPolar(energy, n);
+  }
+}
+

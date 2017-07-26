@@ -106,7 +106,7 @@ real compute_varheight_smoothing (xp, yp)
 	// Function
 	dist = sqrt(xp*xp + yp*yp);
 	if (( dist >= Rmed[NRAD-1] ) || ( dist <= Rmed[0] )) {
-		smoothing = 0.0001*THICKNESSSMOOTHING;
+		smoothing = 0.0;
 	} else {
 		smoothing = compute_aspectratio(xp, yp);
 		smoothing = smoothing * THICKNESSSMOOTHING * pow(dist, 1.0+FLARINGINDEX);
@@ -338,12 +338,6 @@ void ComputeNewEnergyField(gas_density, gas_energy)
 			energy[l] = CV*temp[l]*dens[l];
 		}
 	}
-	// Debug
- 	if ( RadiationDebug ) {
- 		int check_neg = 1;
-    int check_zero = 1;
- 		CheckField(gas_energy, check_neg, check_zero, "ComputeNewEnergyField");
- 	}
 }
 
 

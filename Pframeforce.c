@@ -16,6 +16,8 @@ static real q0[MAX1D], q1[MAX1D], PlanetMasses[MAX1D];
 static real vt_int[MAX1D], vt_cent[MAX1D];
 extern boolean VarDiscHeight, RadCooling, RadiativeOnly;
 extern boolean StellarSmoothing;
+extern boolean PotentialTransition;
+extern real PhysicalTime;
 
 void ComputeIndirectTerm () 
 {
@@ -47,6 +49,7 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
   real InvPlanD3, InvD;
   real drx, dry, A;
   real Rstar[2], q[2], ssmooth[2];
+  real a, f, W1, W2, pot_b, pot_s;
   
   Pot = Potential->Field;
   nr = Potential->Nrad;
@@ -138,7 +141,7 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
   
   /* -- Direct term from star(s) on gas -- */
   if ( BinaryOn ) {
-    drx = bsys->x[0] - bsys->x[1];
+  	drx = bsys->x[0] - bsys->x[1];
     dry = bsys->y[0] - bsys->y[1];
     A = sqrt(drx*drx + dry*dry);
     for (s = 0; s < NbStar; s++) {
@@ -157,30 +160,70 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
         smoothing = (bsys->smooth[s]) * AspectRatio(rs) * pow(rs, 1.0+FLARINGINDEX);
         ssmooth[s] = smoothing*smoothing;
       }
-
-#pragma omp parallel for private(InvD, j, l, ang, x, y, pot, d, dsmooth)
-      for (i = 0; i < nr; i++) {
-        InvD = 1.0/Rmed[i];
-        for (j = 0; j < ns; j++) {
-          l = j+i*ns;
-          ang = (real)j/(real)ns*2.0*PI;
+    }
+  	if ( PotentialTransition ) {
+	    a = PhysicalTime/POTENTIALTRANSITIONTIME;
+	    f = 3.0*pow(a, 2.0) - 2.0*pow(a, 3.0);
+	    if ( PhysicalTime > POTENTIALTRANSITIONTIME ) {
+	    	W1 = 1.0; W2 = 0.0;
+	    } else {
+	    	W1 = f; W2 = 1.0 - f;
+	    }
+	    for (i = 0; i < nr; i++) {
+	    	InvD = 1.0/Rmed[i];
+	    	for (j = 0; j < ns; j++) {
+	    		l = j+i*ns;
+	    		ang = (real)j/(real)ns*2.0*PI;
           x = Rmed[i]*cos(ang);
           y = Rmed[i]*sin(ang);
-          d = (x-xs)*(x-xs) + (y-ys)*(y-ys);
-          if ( StellarSmoothing == NO ) {
-            if (sqrt(d) < Rstar[s]) {
-              pot = (-1.0)*G*bsys->mass[s]*(3.0*pow(Rstar[s], 2.0) - d)/(2.0*pow(Rstar[s], 3.0));
+          pot_b = 0;
+          for (s = 0; s < NbStar; s++) {
+            d = (x-bsys->x[s])*(x-bsys->x[s]) + (y-bsys->y[s])*(y-bsys->y[s]);
+            if ( StellarSmoothing == NO ) {
+              if ( sqrt(d) < Rstar[s] ) {
+                pot_b += (-1.0)*G*bsys->mass[s]*(3*pow(Rstar[s],2) - d)/(2*pow(Rstar[s],3));
+              } else {
+                pot_b += (-1.0)*G*bsys->mass[s]/sqrt(d);
+              }
             } else {
-              pot = (-1.0)*G*bsys->mass[s]/sqrt(d);
+              dsmooth = sqrt(d + ssmooth[s]);
+              pot_b += (-1.0)*G*bsys->mass[s]/dsmooth;
             }
-          } else {
-            dsmooth = sqrt(d + ssmooth[s]);
-            pot = (-1.0)*G*ms/dsmooth;
           }
-          Pot[l] += pot;
-        }
-      }
-    }
+          pot_s = (-1.0)*G*1.0*InvD;
+          Pot[l] += W1*pot_b + W2*pot_s;
+	    	}
+	    }
+  	} else {
+	    for (s = 0; s < NbStar; s++) {
+	      xs = bsys->x[s];
+	      ys = bsys->y[s];
+	      rs = sqrt(xs*xs + ys*ys);
+	      ms = bsys->mass[s];
+	#pragma omp parallel for private(InvD, j, l, ang, x, y, pot, d, dsmooth)
+	      for (i = 0; i < nr; i++) {
+	        InvD = 1.0/Rmed[i];
+	        for (j = 0; j < ns; j++) {
+	          l = j+i*ns;
+	          ang = (real)j/(real)ns*2.0*PI;
+	          x = Rmed[i]*cos(ang);
+	          y = Rmed[i]*sin(ang);
+	          d = (x-xs)*(x-xs) + (y-ys)*(y-ys);
+	          if ( StellarSmoothing == NO ) {
+	            if (sqrt(d) < Rstar[s]) {
+	              pot = (-1.0)*G*bsys->mass[s]*(3.0*pow(Rstar[s], 2.0) - d)/(2.0*pow(Rstar[s], 3.0));
+	            } else {
+	              pot = (-1.0)*G*bsys->mass[s]/sqrt(d);
+	            }
+	          } else {
+	            dsmooth = sqrt(d + ssmooth[s]);
+	            pot = (-1.0)*G*ms/dsmooth;
+	          }
+	          Pot[l] += pot;
+	        }
+	      }
+	    }
+	  }
   } else {
 #pragma omp parallel for private(InvD, j, l, ang, x, y, pot)
     for (i = 0; i < nr; i++) {
@@ -194,13 +237,6 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
         Pot[l] += pot;
       }
     }
-  }
-
-  // Debug
-  if ( debug ) {
-  	int check_neg = 0;
-    int check_zero = 0;
-    CheckField(Potential, check_neg, check_zero, "");
   }
 }
 

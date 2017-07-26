@@ -301,14 +301,15 @@ void ComputeStarRad (Qbase, Vrad, QStar, dt)
       lq= i+j*nr;
       lip = l+ns;
       lim = l-ns;
-      if ((i == 0) || (i == nr-1)) dq[lq] = 0.0;
-      else {
-	dqm = (qb[l]-qb[lim])*InvDiffRmed[i];
-	dqp = (qb[lip]-qb[l])*InvDiffRmed[i+1];
-	if (dqp * dqm > 0.0)
-	  dq[lq] = 2.0*dqp*dqm/(dqp+dqm);
-	else
-	  dq[lq] = 0.0;
+      if ((i == 0) || (i == nr-1)) {
+      	dq[lq] = 0.0;
+      } else {
+				dqm = (qb[l]-qb[lim])*InvDiffRmed[i];
+				dqp = (qb[lip]-qb[l])*InvDiffRmed[i+1];
+				if (dqp * dqm > 0.0)
+	  			dq[lq] = 2.0*dqp*dqm/(dqp+dqm);
+				else
+	  			dq[lq] = 0.0;
       }
     }
     for (i = 0; i < nr; i++) {
@@ -317,9 +318,9 @@ void ComputeStarRad (Qbase, Vrad, QStar, dt)
       lip = l+ns;
       lim = l-ns;
       if (vr[l] > 0.0)
-	qs[l] = qb[lim]+(Rmed[i]-Rmed[i-1]-vr[l]*dt)*0.5*dq[lq-1];
+				qs[l] = qb[lim]+(Rmed[i]-Rmed[i-1]-vr[l]*dt)*0.5*dq[lq-1];
       else
-	qs[l] = qb[l]-(Rmed[i+1]-Rmed[i]+vr[l]*dt)*0.5*dq[lq];
+				qs[l] = qb[l]-(Rmed[i+1]-Rmed[i]+vr[l]*dt)*0.5*dq[lq];
     }
     qs[j] = qs[j+ns*nr] = 0.0;
   }

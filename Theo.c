@@ -20,14 +20,12 @@ real Sigma(r)
   if (Sigma_Cavity == YES) {
     if (BinaryOn == YES) {
       gap = 3.0*Abinary;      /*This should be 2.5 the binary separation, a_b, in whatever units etc */
-      gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
     } else {
       gap = 1.6*RMIN;
-      gap = 0.5;
-      gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
+      gap = 0.6864;
     }
   }
-
+  gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
   /*if (r < CAVITYRADIUS) cavity = 1.0/CAVITYRATIO;
   gap_func = cavity*pow(r,-SIGMASLOPE);*/
 
@@ -90,19 +88,17 @@ real Energy(r)
       real gap;
       real sigma;
     	if (BinaryOn == YES) {
-      		gap = 3.0*Abinary;      /*This should be 2.5 the binary separation, a_b, in whatever units etc */
-      		gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
+      	gap = 3.0*Abinary;      /*This should be 2.5 the binary separation, a_b, in whatever units etc */
     	} else {
-      		gap = 1.6*RMIN;
-    			gap = 0.5;
-      		gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
+      	gap = 1.6*RMIN;
+    		gap = 0.6864;
     	}
+    	gap_func = 1.0/(1.0+exp(10.0*(gap-r)/gap));
       sigma = taper_func*gap_func*ScalingFactor*SIGMA0*pow(r,-SIGMASLOPE);
       energy0 = R/MU/(ADIABATICINDEX-1.0)*pow(ASPECTRATIO,2.0)*pow(r,-1.0+2.0*FLARINGINDEX)*sigma;
   	} else {
   		energy0 = R/MU/(ADIABATICINDEX-1.0)*SIGMA0*pow(ASPECTRATIO,2.0)*pow(r,-SIGMASLOPE-1.0+2.0*FLARINGINDEX);
   	}
-  	// energy0 = R/MU/(ADIABATICINDEX-1.0)*SIGMA0*pow(ASPECTRATIO,2.0)*pow(r,-SIGMASLOPE-1.0+2.0*FLARINGINDEX);
   }
 
   return energy0;

@@ -9,7 +9,7 @@
 #define MAXVARIABLES 500
 
 extern int      begin_i;
-extern boolean  OpenInner, RadiationDebug, debug;
+extern boolean  OpenInner;
 static Param    VariableSet[MAXVARIABLES];
 static int      VariableIndex = 0;
 static int	FirstStep = YES;
@@ -18,7 +18,7 @@ static long	Ticks;
 boolean         FastTransport = YES, GuidingCenter = NO, Indirect_Term = YES;
 boolean         IsDisk = YES, HydroOn = YES,  Corotating = NO;
 boolean         NonReflecting = NO, Evanescent = NO;
-boolean         ClosedInner = NO, ViscousInner = NO, EvanescentInner = NO;
+boolean         ClosedInner = NO, ViscousInner = NO, EvanescentInner = NO, BinaryViscousInner = NO;
 boolean         OuterSourceMass = NO, EvanescentOuter = NO, OpenOuter = NO;
 boolean         Write_Density = YES, Write_Velocity = YES, Write_Energy = NO, Sigma_Taper = NO, Sigma_Cavity;
 boolean         Write_Eccentricity = NO, Write_Pericentre = NO;
@@ -55,6 +55,7 @@ boolean         ExplicitRadTransport = NO;
 boolean         AnalyticCooling = NO;
 boolean         Constant_Opacity = NO;
 boolean					Relative_Source = NO;
+boolean					PotentialTransition = NO;
 
 
 void var(name, ptr, type, necessary, deflt)
@@ -190,6 +191,9 @@ void ReadVariables(filename)
   if (( *OPENINNERBOUNDARY == 'V' ) || ( *OPENINNERBOUNDARY == 'v' )) {
     ViscousInner = YES;
   }
+  if (( *OPENINNERBOUNDARY == 'B' ) || ( *OPENINNERBOUNDARY == 'b' )) {
+    BinaryViscousInner = YES;
+  }
   if (( *OPENOUTERBOUNDARY == 'O' ) || ( *OPENOUTERBOUNDARY == 'o' )) {
     OpenOuter = YES;
   }
@@ -245,6 +249,9 @@ void ReadVariables(filename)
   }
   if (( *FORCEDCIRCULAR == 'Y' ) || ( *FORCEDCIRCULAR == 'y' )) {
     ForcedCircular = YES;
+  }
+  if (( *POTENTIALTRANSITION == 'Y' ) || ( *POTENTIALTRANSITION == 'y' )) {
+  	PotentialTransition = YES;
   }
   if (( ALPHAVISCOSITY != 0.0 ) && ( VISCOSITY != 0.0 )) {
     mastererr ("You cannot use at the same time\n");
@@ -480,9 +487,6 @@ void ReadVariables(filename)
     Irradiation = NO;
     RayTracingHeating = NO;
     VarDiscHeight = NO;
-  }
-  if (( debug ) && (( RadCooling ) || ( RadTransport ) || ( Irradiation ) || ( RayTracingHeating ))) {
-  	RadiationDebug = YES;
   }
 
   /* Output Parameters */

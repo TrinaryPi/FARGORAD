@@ -499,15 +499,25 @@ void AccreteOntoStars (Rho, dt, bsys)
   real facc, facc1, facc2, frac1, frac2; /* We adopt the same notations as W. Kley */
   real *dens, *abs, *ord, binacc[2];
   real xc, yc;
+  real *xs, *ys, *Ms;
   real dMstar;
   nr     = Rho->Nrad;
   ns     = Rho->Nsec;
   dens   = Rho->Field;
   abs    = CellAbscissa->Field;
   ord    = CellOrdinate->Field;
-  for (k=0; k < bsys->nb; k++) {
-    if (bsys->acc[k] > 1e-10) {
-      dMstar = binacc[k] = 0.0;
+  xs = bsys->x;
+  ys = bsys->y;
+  Ms = bsys->mass;
+  binsep = sqrt((xs[0] - xs[1])*(xs[0] - xs[1]) + (ys[0] - ys[1])*(ys[0] - ys[1]));
+
+  for (k = 0; k < bsys->nb; k++) {
+    dMstar = binacc[k] = 0.0;
+    Rstar = sqrt(xs[k]*xs[k] + ys[k]*ys[k]);
+    q = Ms[k]/(1-Ms[k]);
+    RRoche = binsep*(0.38 + 0.2*log(q));
+    if (( bsys->acc[k] > 1e-10 ) && (( Rstar - RRoche > Rmed[0] ) && ( Rstar + RRoche < Rmed[nr-1] ))) {
+      
       /* Hereafter : initialization of W. Kley's parameters */
       facc = dt*(bsys->acc[k]);
       facc1 = 1.0/3.0*facc;
@@ -515,17 +525,6 @@ void AccreteOntoStars (Rho, dt, bsys)
       frac1 = 0.75;
       frac2 = 0.45;
       /* W. Kley's parameters initialization finished */
-      Xstar = bsys->x[k];
-      Ystar = bsys->y[k];
-      binsep = sqrt(((bsys->x[0])-(bsys->x[1]))*((bsys->x[0])-(bsys->x[1]))
-        +((bsys->y[0])-(bsys->y[1]))*((bsys->y[0])-(bsys->y[1])));
-      Mstar = bsys->mass[k];
-      Rstar = sqrt(Xstar*Xstar+Ystar*Ystar);
-      /* Think about what value to ACTUALLY have here! Roche Lobe or Hill Sphere */
-      /* This is more applicable to the hill sphere
-      RRoche = pow((1.0/3.0*Mplanet),(1.0/3.0))*Rplanet; */
-      q = Mstar/(1-Mstar);
-      RRoche = binsep*(0.38 + 0.2*log(q));
       /* Central mass is 1.0 */
       i_min=0;
       i_max=nr-1;
@@ -571,7 +570,6 @@ void AccreteOntoStars (Rho, dt, bsys)
       
     } else {
       dMstar = 0.0;
-
     }
     binacc[k] = dMstar;
   }

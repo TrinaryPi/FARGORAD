@@ -158,7 +158,6 @@ void EvanescentOuterBoundary();
 void EvanescentInnerBoundary();
 void OpenOuterBoundary();
 void DiscMassTaperCalc();
-void ApplyFloor();
 void ViscousInnerBoundary();
 
 boolean CountStars();
@@ -246,3 +245,6 @@ void SmoothField();
 real *CreateKernel();
 void BoundaryConditionsFLD();
 void freePolarGrid();
+void TestFieldOutput();
+
+void BinaryViscousInnerBoundary();

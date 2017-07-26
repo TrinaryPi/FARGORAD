@@ -7,7 +7,7 @@
 */
 #include "mp.h"
 
-extern boolean OpenInner, ClosedInner, ViscousInner, NonReflecting, OuterSourceMass, Evanescent, EvanescentInner, EvanescentOuter, OpenOuter;
+extern boolean OpenInner, ClosedInner, ViscousInner, BinaryViscousInner, NonReflecting, OuterSourceMass, Evanescent, EvanescentInner, EvanescentOuter, OpenOuter;
 extern boolean SelfGravity, SGZeroMode, Adiabatic, DiscMassTaper;
 extern Pair DiskOnPrimaryAcceleration;
 extern int dimfxy;
@@ -297,13 +297,42 @@ void ViscousInnerBoundary (Vrad, Rho, Energy)
     l = j+i*ns;
     rho[l-ns] = rho[l] ;    // copy first ring into ghost ring
     energy[l-ns] = energy[l];
-    if (vr[l+ns] < velvisc) {
+    if ( vr[l+ns] > velvisc ) {
       vr[l] = velvisc;
-    } else if (vr[l+ns] > 0.0) {
+    } else if ( vr[l+ns] > 0.0 ) {
       vr[l] = 0.0;
     } else {
       vr[l] = vr[l+ns];
     }
+  }
+}
+
+void BinaryViscousInnerBoundary (Vrad, Vtheta, Rho, Energy)
+     PolarGrid *Vrad, *Vtheta, *Rho, *Energy;
+{
+  if ( CPU_Rank != 0 ) {
+    return;
+  }
+  int i, j, l, ns;
+  real *rho, *vr, *vt, *energy;
+  real viscosity, velvisc;
+
+  ns = Rho->Nsec;
+  rho = Rho->Field;
+  vr  = Vrad->Field;
+  vt  = Vtheta->Field;
+  energy = Energy->Field;
+
+  i = 0;
+  viscosity = FViscosity(Rmed[0]);
+  velvisc = (-1.0)*OUTFLOWBETA*(1.5*viscosity/Rmed[0]);
+#pragma omp parallel for private(l)
+  for (j = 0; j < ns; j++) {
+    l = j+i*ns;
+    rho[l] = rho[l+ns] ;    // copy first ring into ghost ring
+    energy[l] = energy[l+ns];
+    vt[l] = vt[l+ns];
+    vr[l] = velvisc;
   }
 }
 
@@ -737,7 +766,7 @@ void ApplySubKeplerianBoundary (Vtheta)
       i = 0;
       for (j = 0; j < ns; j++) {
         l = j + i*ns;
-        if (( BinaryOn ) || ( NonKepBoundaries )) {
+        if ( NonKepBoundaries ) {
           vt[l] = vt[l+ns];
         } else {
           vt[l] = VKepIn-Rmed[i]*OmegaFrame;
@@ -775,6 +804,9 @@ void ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, step)
     }
     if ( ViscousInner ) {
       ViscousInnerBoundary (Vrad, Rho, Energy);
+    }
+    if ( BinaryViscousInner ) {
+      BinaryViscousInnerBoundary (Vrad, Vtheta, Rho, Energy);
     }
     if ( OpenOuter ) {
       OpenOuterBoundary (Vrad, Rho, Energy);

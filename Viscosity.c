@@ -8,8 +8,8 @@
 #include "mp.h"
 
 extern boolean VarDiscHeight;
-
 static PolarGrid *DRR, *DRP, *DPP;
+
 
 real FViscosity (rad)
      real rad;
@@ -17,8 +17,10 @@ real FViscosity (rad)
   real viscosity, rmin, rmax, scale;
   int i = 0;
   viscosity = VISCOSITY;
-  if (ViscosityAlpha) {
-    while (GlobalRmed[i] < rad) i++;
+  if ( ViscosityAlpha ) {
+    while ( GlobalRmed[i] < rad ) {
+    	i++;
+    }
     viscosity = ALPHAVISCOSITY*GLOBAL_bufarray[i]*	\
       GLOBAL_bufarray[i]*pow(rad, 1.5);
   }
@@ -27,12 +29,16 @@ real FViscosity (rad)
   scale = 1.0+(PhysicalTime-PhysicalTimeInitial)*LAMBDADOUBLING;
   rmin *= scale;
   rmax *= scale;
-  if (rad < rmin) viscosity *= CAVITYRATIO;
-  if ((rad >= rmin) && (rad <= rmax)) {
+  if ( rad < rmin ) {
+  	viscosity *= CAVITYRATIO;
+  }
+  if (( rad >= rmin ) && ( rad <= rmax )) {
     viscosity *= exp((rmax-rad)/(rmax-rmin)*log(CAVITYRATIO));
   }
+
   return viscosity;
 }
+
 
 real AspectRatio (rad)
      real rad;
@@ -43,7 +49,7 @@ real AspectRatio (rad)
 		if (( rad < Rmed[0] ) || ( rad > Rmed[NRAD-1] )) {
 			aspectratio = ASPECTRATIO;
 		} else {
-  		while (Rmed[i] <= rad) {
+  		while ( Rmed[i] <= rad ) {
 				i++;
 			}
   		aspectratio = MeanDiscHeight[i]/rad;
@@ -56,10 +62,13 @@ real AspectRatio (rad)
   scale = 1.0+(PhysicalTime-PhysicalTimeInitial)*LAMBDADOUBLING;
   rmin *= scale;
   rmax *= scale;
-  if (rad < rmin) aspectratio *= TRANSITIONRATIO;
-  if ((rad >= rmin) && (rad <= rmax)) {
+  if ( rad < rmin ) {
+  	aspectratio *= TRANSITIONRATIO;
+  }
+  if (( rad >= rmin ) && ( rad <= rmax )) {
     aspectratio *= exp((rmax-rad)/(rmax-rmin)*log(TRANSITIONRATIO));
   }
+
   return aspectratio;
   // aspectratio = ASPECTRATIO;
   // rmin = TRANSITIONRADIUS-TRANSITIONWIDTH*ASPECTRATIO;
@@ -74,6 +83,7 @@ real AspectRatio (rad)
   // return aspectratio;
 }
 
+
 void InitViscosity ()
 {
   DivergenceVelocity = CreatePolarGrid(NRAD, NSEC, "DivV");
@@ -84,6 +94,7 @@ void InitViscosity ()
   TAURP              = CreatePolarGrid(NRAD, NSEC, "TAUrp");
   TAUPP              = CreatePolarGrid(NRAD, NSEC, "TAUpp");
 }
+
 
 void ComputeViscousTerms (RadialVelocity, AzimuthalVelocity, Rho)
      PolarGrid *RadialVelocity, *AzimuthalVelocity, *Rho;
@@ -111,32 +122,37 @@ void ComputeViscousTerms (RadialVelocity, AzimuthalVelocity, Rho)
   dphi = 2.0*M_PI/(real)ns;
   invdphi = 1.0/dphi;
   onethird = 1.0/3.0;
-  if (ViscosityAlpha)
+  if ( ViscosityAlpha ) {
     mpi_make1Dprofile (cs, GLOBAL_bufarray);
+  }
 #pragma omp parallel private(l,lip,ljp,j,ljm,lim)
   {
 #pragma omp for nowait
     for (i = 0; i < nr; i++) {	/* Drr, Dpp and divV computation */
       for (j = 0; j < ns; j++) {
-	l = j+i*ns;
-	lip = l+ns;
-	ljp = l+1;
-	if (j == ns-1) ljp = i*ns;
-	Drr[l] = (vr[lip]-vr[l])*InvDiffRsup[i];
-	Dpp[l] = (vt[ljp]-vt[l])*invdphi*InvRmed[i]+0.5*(vr[lip]+vr[l])*InvRmed[i];
-	divergence[l]  = (vr[lip]*Rsup[i]-vr[l]*Rinf[i])*InvDiffRsup[i]*InvRmed[i];
-	divergence[l] += (vt[ljp]-vt[l])*invdphi*InvRmed[i];
+				l = j+i*ns;
+				lip = l+ns;
+				ljp = l+1;
+				if ( j == ns-1 ) {
+					ljp = i*ns;
+				}
+				Drr[l] = (vr[lip]-vr[l])*InvDiffRsup[i];
+				Dpp[l] = (vt[ljp]-vt[l])*invdphi*InvRmed[i]+0.5*(vr[lip]+vr[l])*InvRmed[i];
+				divergence[l]  = (vr[lip]*Rsup[i]-vr[l]*Rinf[i])*InvDiffRsup[i]*InvRmed[i];
+				divergence[l] += (vt[ljp]-vt[l])*invdphi*InvRmed[i];
       }
-    }
+    }	
 #pragma omp for
     for (i = 1; i < nr; i++) {	/* Drp computation */
       for (j = 0; j < ns; j++) {
-	l = j+i*ns;
-	ljm = l-1;
-	if (j == 0) ljm = i*ns+ns-1;
-	lim = l-ns;
-	Drp[l] = 0.5*(Rinf[i]*(vt[l]*InvRmed[i]-vt[lim]*InvRmed[i-1])*InvDiffRmed[i]+ \
-		      (vr[l]-vr[ljm])*invdphi*InvRinf[i]);
+				l = j+i*ns;
+				ljm = l-1;
+				if ( j == 0 ) {
+					ljm = i*ns+ns-1;
+				}
+				lim = l-ns;
+				Drp[l] = 0.5*(Rinf[i]*(vt[l]*InvRmed[i]-vt[lim]*InvRmed[i-1])*InvDiffRmed[i]+ \
+					(vr[l]-vr[ljm])*invdphi*InvRinf[i]);
       }
     }
   }
@@ -146,21 +162,23 @@ void ComputeViscousTerms (RadialVelocity, AzimuthalVelocity, Rho)
     for (i = 0; i < nr; i++) {	/* TAUrr and TAUpp computation */
       viscosity = FViscosity (Rmed[i]);
       for (j = 0; j < ns; j++) {
-	l = j+i*ns;
-	Trr[l] = 2.0*rho[l]*viscosity*(Drr[l]-onethird*divergence[l]);
-	Tpp[l] = 2.0*rho[l]*viscosity*(Dpp[l]-onethird*divergence[l]);
+				l = j+i*ns;
+				Trr[l] = 2.0*rho[l]*viscosity*(Drr[l]-onethird*divergence[l]);
+				Tpp[l] = 2.0*rho[l]*viscosity*(Dpp[l]-onethird*divergence[l]);
       }
     }
 #pragma omp for
     for (i = 1; i < nr; i++) {	/* TAUrp computation */
       viscosity = FViscosity (Rmed[i]);
       for (j = 0; j < ns; j++) {
-	l = j+i*ns;
-	lim = l-ns;
-	ljm = l-1;
-	if (j == 0) ljm = i*ns+ns-1;
-	ljmim=ljm-ns;
-	Trp[l] = 2.0*0.25*(rho[l]+rho[lim]+rho[ljm]+rho[ljmim])*viscosity*Drp[l];
+				l = j+i*ns;
+				lim = l-ns;
+				ljm = l-1;
+				if ( j == 0 ) {
+					ljm = i*ns+ns-1;
+				}
+				ljmim=ljm-ns;
+				Trp[l] = 2.0*0.25*(rho[l]+rho[lim]+rho[ljm]+rho[ljmim])*viscosity*Drp[l];
       }
     }
   }

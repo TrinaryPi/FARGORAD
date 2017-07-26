@@ -247,11 +247,11 @@ void ComputeRKappa (Sigma)
 	}
 
 	// Debug
-	if ( RadiationDebug ) {
-		int check_neg = 1;
-    int check_zero = 1;
-		CheckField(RKappaval, check_neg, check_zero, "ComputeRKappa");
-	}
+	// if ( RadiationDebug ) {
+	// 	int check_neg = 1;
+ //    int check_zero = 1;
+	// 	CheckField(RKappaval, check_neg, check_zero, "ComputeRKappa");
+	// }
 }
 
 real CoolingRegime (rho, T)
