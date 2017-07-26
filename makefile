@@ -70,7 +70,7 @@ PARACC_SPARC = mpicc
 # Setup for AMD cifib apocrita nodes with PGI compiler, FARGO_ARCH must be set to 
 # PGI
 CC_PGI  = pgcc
-OPT_PGI = -fast -O0 -B
+OPT_PGI = -O0 -B
 OPTSEQ_PGI = 
 PARAOPT_PGI =
 PARACC_PGI = mpicc

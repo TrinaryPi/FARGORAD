@@ -424,7 +424,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       }
       ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, dt);
       CopyDensity(Rho);
-      if (( RadiationDebug ) && ( Adiabatic )) {
+      if (( debug ) && ( Adiabatic )) {
       	int check_neg = 1;
       	int check_zero = 1;
       	CheckField(Energy, check_neg, check_zero, "Transport");
@@ -434,11 +434,11 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       exces_mdcp = mdcp - mdcp0;
     }
     PhysicalTime += dt;
-    // timestep_counter++;
-    // if ( (timestep_counter % 100) == 0 ) {
-    // 	timestep_counter = 0;
-    // 	masterprint("t = %g", PhysicalTime);
-    // }
+    timestep_counter++;
+    if ( (timestep_counter % 100) == 0 ) {
+    	timestep_counter = 0;
+    	masterprint("t = %g", PhysicalTime);
+    }
   }
   masterprint ("\n");
 }
