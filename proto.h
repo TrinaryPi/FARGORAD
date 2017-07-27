@@ -223,7 +223,7 @@ real ComputeSkappa();
 real ComputeQRT();
 int sign2();
 int CircleLineProjection();
-void CheckField();
+int CheckField();
 int CheckValue();
 void PrintBooleanUsage();
 void DumpRadiationFields();

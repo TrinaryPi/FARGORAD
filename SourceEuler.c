@@ -427,7 +427,14 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       if (( debug ) && ( Adiabatic )) {
       	int check_neg = 1;
       	int check_zero = 1;
-      	CheckField(Energy, check_neg, check_zero, "Transport");
+      	if ( CheckField(Energy, check_neg, check_zero, "Transport") == 1 ) {
+      		WriteDiskPolar(Vrad, 9999);
+      		WriteDiskPolar(Vtheta, 9999);
+      		masterprint("xb_0 = %f; yb_0 = %f;\n", bsys->x[0], bsys->y[0]);
+      		masterprint("xb_1 = %f; yb_1 = %f;\n", bsys->x[1], bsys->y[1]);
+   				MPI_Finalize();
+					exit(1);
+      	}
       }
       ComputeTemperatureField (Rho, Energy);
       mdcp = CircumPlanetaryMass (Rho, sys);

@@ -25,7 +25,7 @@ extern boolean NoCFL;
 extern boolean RadiativeOnly;
 
 
-void CheckField(testField, checkNegative, checkZero, note_string)
+int CheckField(testField, checkNegative, checkZero, note_string)
 	// Input
 	PolarGrid *testField;
 	int checkNegative;
@@ -36,6 +36,7 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 	int		nr, ns, i, j, l;
 	int		flagNonFinite, flagNegative, flagZero, flag1=0, flag2=0, flag3=0;
 	real	*fieldvals;
+	int		Flag=0;
 
 	// Assignment
 	nr = testField->Nrad;
@@ -61,16 +62,18 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 	if ( flagNonFinite != 0 ) {
     masterprint("Error: Non-finite value in %s (%s). Exiting.\n", testField->Name, note_string);
     DumpRadiationFields(testField);
-   	MPI_Finalize();
-		exit(flagNonFinite);
+    Flag = 1;
+   	// MPI_Finalize();
+		// exit(flagNonFinite);
 	}
   if ( checkNegative == 1 ) {
 		MPI_Allreduce (&flag2, &flagNegative, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 		if ( flagNegative != 0 ) {
 			masterprint("Error: Negative value in %s (%s). Exiting.\n", testField->Name, note_string);
 			DumpRadiationFields(testField);
-			MPI_Finalize();
-			exit(flagNegative);
+			Flag = 1;
+   		// MPI_Finalize();
+			// exit(flagNonFinite);
 		}
 	}
 	if ( checkZero == 1 ) {
@@ -78,8 +81,9 @@ void CheckField(testField, checkNegative, checkZero, note_string)
 		if ( flagZero != 0 ) {
 			masterprint("Error: Zero value in %s (%s). Exiting.\n", testField->Name, note_string);
 			DumpRadiationFields(testField);
-			MPI_Finalize();
-			exit(flagZero);
+			Flag = 1;
+   		// MPI_Finalize();
+			// exit(flagNonFinite);
 		}
 	}
 }
