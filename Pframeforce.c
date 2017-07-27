@@ -60,7 +60,7 @@ void FillForcesArrays (bsys, sys, Rho, Energy)
 
   // Constants
   q[0] = bsys->mass[0]/bsys->mass[1];
-  q[1] = 1.0/q[1];
+  q[1] = 1.0/q[0];
   
   /* Indirect term star on gas here */
 

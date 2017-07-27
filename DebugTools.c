@@ -86,6 +86,8 @@ int CheckField(testField, checkNegative, checkZero, note_string)
 			// exit(flagNonFinite);
 		}
 	}
+
+	return Flag;
 }
 
 

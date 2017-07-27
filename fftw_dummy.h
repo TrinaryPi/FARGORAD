@@ -12,12 +12,23 @@
 /*                                             */
 /*                                             */
 /***********************************************/
+#define FFTW_REAL_TO_COMPLEX 0 
+#define FFTW_COMPLEX_TO_REAL 0
+#define FFTW_MEASURE 0
+#define FFTW_IN_PLACE 0
+#define FFTW_TRANSPOSED_ORDER 0
 
-#define fftw_real 2
-#define fftw_complex 3
-
+typedef double fftw_real;
+typedef struct {
+     fftw_real re, im;
+} fftw_complex;
 typedef int rfftwnd_mpi_plan;
+typedef int rfftw_plan;
 
-void fftw_malloc();
-void rfftw2d_mpi_create_plan();
-void rfftwnd_mpi();
+int *fftw_malloc();
+int *rfftw2d_mpi_create_plan();
+int *rfftwnd_mpi_destroy_plan();
+int *rfftwnd_mpi();
+int *rfftwnd_mpi_local_sizes();
+int *rfftw_create_plan();
+int *rfftw_one();
