@@ -229,7 +229,6 @@ void PrintBooleanUsage();
 void DumpRadiationFields();
 void ResetTempSourcesSinks();
 void ComputeQplus();
-real EnergyConditionCFL();
 real RadCoolConditionCFL();
 void ComputeQminus();
 void ComputeQirr();

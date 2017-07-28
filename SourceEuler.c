@@ -251,39 +251,22 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
   if ( IsDisk ) {
     CommunicateBoundaries (Rho, Vrad, Vtheta, Energy, Label);
     if ( SloppyCFL ) {
-      if ( !RadiativeOnly ) {
-        ComputeViscousTerms (Vrad, Vtheta, Rho);
-      }
-      if ( Adiabatic ) {
-        ComputeQplus(Rho);
-      }
       gastimestepcfl = ConditionCFL (Vrad, Vtheta, Energy, DT-dtemp, sys, bsys);
     }
   }
   MPI_Allreduce (&gastimestepcfl, &GasTimeStepsCFL, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
   dt = DT / (real)GasTimeStepsCFL;
-
   while (dtemp < 0.999999999*DT) {
     MassTaper = PhysicalTime/(MASSTAPER*2.0*M_PI);
     MassTaper = (MassTaper > 1.0 ? 1.0 : pow(sin(MassTaper*M_PI/2.0), 2.0));
     // New Star Temperature Taper (6/01/2017)
-    if (STARTAPER < dt) {
-    	StarTaper = 1.0;
-    } else {
-    	StarTaper = PhysicalTime/(STARTAPER*2.0*M_PI); 
-    	StarTaper = (StarTaper > 1.0 ? 1.0 : pow(sin(StarTaper*M_PI/2.0), 2.0));
-    }
+    StarTaper = PhysicalTime/(STARTAPER*2.0*M_PI); 
+    StarTaper = (StarTaper > 1.0 ? 1.0 : pow(sin(StarTaper*M_PI/2.0), 2.0));
     if ( IsDisk ) {
       CommunicateBoundaries (Rho, Vrad, Vtheta, Energy, Label);
       if ( !SloppyCFL ) {
 	      gastimestepcfl = 1;
 	      if ( !NoCFL ) {
-          if ( !RadiativeOnly ) {
-            ComputeViscousTerms (Vrad, Vtheta, Rho);
-          }
-          if ( Adiabatic ) {
-            ComputeQplus(Rho);
-          }
           gastimestepcfl = ConditionCFL (Vrad, Vtheta, Energy, DT-dtemp, sys, bsys);
         }
 	      MPI_Allreduce (&gastimestepcfl, &GasTimeStepsCFL, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
@@ -381,10 +364,8 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     	if ( HydroOn ) {
         SubStep1 (Vrad, Vtheta, Rho, dt);
         SubStep2 (Rho, Energy, dt);
-        if ( Adiabatic ) {
-        	if ( RadiativeOnly ) {
-        		ActualiseGas(EnergyInt, Energy);
-        	}
+        if (( RadiativeOnly ) && ( Adiabatic )) {
+        	ActualiseGas(EnergyInt, Energy);
         }
         ActualiseGas (Vrad, VradNew);
         ActualiseGas (Vtheta, VthetaNew);
@@ -797,19 +778,14 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
       newdt = dt_nbod;
     }
   }
+
   for (i = Zero_or_active; i < MaxMO_or_active; i++) {
     dt = 2.0*PI*CFLSECURITY/(real)NSEC/fabs(Vmoy[i]*InvRmed[i]-Vmoy[i+1]*InvRmed[i+1]);
     if ( dt < newdt ) {
     	newdt = dt;
     }
   }
-  // if ( Adiabatic ) {
-  //   real dt_e;
-  //   dt_e = EnergyConditionCFL(energy);
-  //   if ( dt_e < newdt ) {
-  //     newdt = dt_e;
-  //   }
-  // }
+
   if ( deltaT < newdt ) {
     newdt = deltaT;
   }
@@ -832,8 +808,8 @@ int ConditionCFL (Vrad, Vtheta, energy, deltaT, sys, bsys)
   //     printf ("or from the imposed DT interval.\n");
   //   }
   // }
-  return (int)(ceil(deltaT/newdt));
   free(Ppair);
+  return (int)(ceil(deltaT/newdt));
 }
 
 
@@ -1202,67 +1178,6 @@ void ComputeQplus (Rho)
   }
 }
 
-real EnergyConditionCFL(Energy)
-  // Input
-  PolarGrid *Energy;
-{
-  // Declaration
-  int i, j, l, nr, ns;
-  real *energy, *qplus, *qirr, *pressure, *divergence;
-  real dedt_abs, dedt, new_dt = 1.0E30, old_dt, factor;
-
-  // Assignment
-  nr = Energy->Nrad;
-  ns = Energy->Nsec;
-  energy = Energy->Field;
-  if ( Irradiation ) {
-    qirr = Qirr->Field;
-  }
-  if ( HydroOn ) {
-    divergence = DivergenceVelocity->Field;
-    pressure = Pressure->Field;
-  }
-  if ( !RadiativeOnly ) {
-    qplus = Qplus->Field;
-  }
-
-  // Constants
-  factor = 1.0;
-
-  // Function
-#pragma omp parallel for private(j, l, dedt, dt, newdt)
-  for (i = One_or_active; i < MaxMO_or_active; i++) {
-    for (j = 0; j < ns; j++) {
-      l = j + i*ns;
-      dedt_abs = 0.0;
-      dedt = 0.0;
-      if ( Irradiation ) {
-        dedt_abs += fabs(qirr[l]);
-        dedt += qirr[l];
-      }
-      if ( HydroOn) {
-        dedt_abs += fabs(pressure[l]*divergence[l]);
-        dedt -= pressure[l]*divergence[l];
-      }
-      if ( !RadiativeOnly) {
-        dedt_abs += fabs(qplus[l]);
-        dedt += qplus[l];
-      }
-      if ( dedt_abs == 0.0 ) {
-      	old_dt = 1.0E30;
-      } else {
-      	old_dt = energy[l]/dedt_abs;
-      	old_dt /= factor;
-      }
-      if ( old_dt < new_dt ) {
-        new_dt = old_dt;
-      }
-    }
-  }
-  
-  // Output
-  return new_dt;
-}
 
 real RadCoolConditionCFL(Energy)
   // Input

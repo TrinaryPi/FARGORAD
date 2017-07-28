@@ -12,6 +12,7 @@
 /*                                             */
 /*                                             */
 /***********************************************/
+
 #define FFTW_REAL_TO_COMPLEX 0 
 #define FFTW_COMPLEX_TO_REAL 0
 #define FFTW_MEASURE 0
@@ -20,7 +21,7 @@
 
 typedef double fftw_real;
 typedef struct {
-     fftw_real re, im;
+	fftw_real re, im;
 } fftw_complex;
 typedef int rfftwnd_mpi_plan;
 typedef int rfftw_plan;
