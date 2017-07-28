@@ -13,6 +13,7 @@
                           		/* von Neumann-Richtmyer viscosity constant */
 															/* Beware of misprint in Stone and Norman's */
 															/* paper : use C2^2 instead of C2           */
+
 #define NBODYSECURITY 200.0  	/* Fraction of the smallest pair-wise period in the binary-planet system */
 
 
@@ -38,8 +39,6 @@ extern boolean VarDiscHeight, RadCooling, Irradiation, RadTransport, TempInit;
 extern boolean NoCFL, RadiativeOnly;
 extern boolean RayTracingHeating, ExplicitRayTracingHeating, ImplicitRadiative;
 static int crash_i, crash_j;
-static real dt_hydro_av = 0.0, dt_energy_av = 0.0;
-static int nsteps_av = 0;
 extern boolean  AnalyticCooling;
 extern boolean ExplicitRadTransport;
 extern int FLDTimeStepsCFL;
@@ -237,8 +236,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
   FirstGasStepFLAG=1;
   gastimestepcfl = 1;
   int timestep_counter = 0;
-  real radcooltimestepcfl;
-  real dt_rc;
+  
 
   if ( Adiabatic ) {
     ComputeSoundSpeed (Rho, Energy);
@@ -379,9 +377,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         ComputeQterms(Rho, Vrad, Vtheta, EnergyInt, bsys);
         SubStep3 (Rho, dt);
         if ( RadCooling ) {
-          radcooltimestepcfl = RadCoolConditionCFL(EnergyNew);
-          MPI_Allreduce (&radcooltimestepcfl, &dt_rc, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-          SubStep3_RadCool(Rho, EnergyNew, dt, dt_rc);
+          SubStep3_RadCool(Rho, EnergyNew, dt);
         }
         if (( RadTransport ) || ( RayTracingHeating )) {
           ComputeSoundSpeed (Rho, EnergyNew);
@@ -1243,20 +1239,18 @@ void ComputeQterms (Rho, Vrad, Vtheta, Energy, bsys)
 }
 
 
-void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
+void SubStep3_RadCool(Rho, Energy, dt_hydro)
   // Input
   PolarGrid *Rho;
   PolarGrid *Energy;
   real dt_hydro;
-  real dt_energy;
 {
   // Declaration
   int i, j, l, nr, ns, nstep;
-  real *density, *energy, *temperature, *qminus, *taueff;
-  real dt_remainder=0.0, dt;
-  real *densitycv;
-  real constant1;
+  real *density, *energy, *temperature, *qminus, *taueff, *densitycv;
+  real dt_remainder=0.0, dt, dt_rc, radcooltimestepcfl;
   real term1, term2;
+  real constant1;
 
   // Assignment
   nr = Rho->Nrad;
@@ -1273,7 +1267,6 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
 
   // Function
   /* Convert energy density to temperature */
-#pragma omp parallel for private(j, l)
   for (i = 0; i < nr; i++) {
     for (j = 0; j < ns; j++) {
       l = j+i*ns;
@@ -1292,21 +1285,19 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
       }
     }
   } else {
+  	radcooltimestepcfl = RadCoolConditionCFL(Energy);
+    MPI_Allreduce (&radcooltimestepcfl, &dt_rc, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
     /* Find number of cooling timesteps per hydro timestep */
-    // if ( dt_energy >  dt_hydro ) { 
+    if ( dt_rc >  dt_hydro ) { 
       RadCoolTimeStepsCFL = 1;
       dt = dt_hydro;
-    // } else {
-    //   RadCoolTimeStepsCFL = (int)(dt_hydro/dt_energy);
-    //   dt = dt_energy;
-    //   dt_remainder = dt_hydro - (real)(RadCoolTimeStepsCFL*dt_energy);
-    // }
-    dt_hydro_av += dt_hydro;
-    dt_energy_av += dt_energy;
-    nsteps_av += RadCoolTimeStepsCFL;
+    } else {
+      RadCoolTimeStepsCFL = (int)(dt_hydro/dt_rc);
+      dt = dt_rc;
+      dt_remainder = dt_hydro - (real)(RadCoolTimeStepsCFL*dt_rc);
+    }
     /* Carry out RadCoolTimeStepsCFL sub-cycles, with timestep dt */
     for (nstep = 0; nstep < RadCoolTimeStepsCFL; nstep++) {
-  #pragma omp parallel for private(j, l)
       /* Evolve temperature field with local radiative cooling */
       for (i = 0; i < nr; i++) {
         for (j = 0; j < ns; j++) {
@@ -1321,7 +1312,6 @@ void SubStep3_RadCool(Rho, Energy, dt_hydro, dt_energy)
     }
     /* Update temperature to time level n+1 with last dt_remainder timestep */
     if ( dt_remainder > 0.0 ) {
-  #pragma omp parallel for private(j, l)
       for (i = 0; i < nr; i++) {
         for (j = 0; j < ns; j++) {
           l = j+i*ns;
