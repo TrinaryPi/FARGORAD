@@ -44,7 +44,6 @@ extern boolean ExplicitRadTransport;
 extern int FLDTimeStepsCFL;
 extern boolean ViscousHeating;
 extern boolean pdivvWork;
-int qirrrt_timestep_counter = 0;
 
 
 boolean DetectCrash (array)
@@ -237,7 +236,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
   FirstGasStepFLAG=1;
   gastimestepcfl = 1;
   int timestep_counter = 0;
-  
+  int qirrrt_timestep_counter = 0;
 
   if ( Adiabatic ) {
     ComputeSoundSpeed (Rho, Energy);
@@ -386,7 +385,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           ComputeTemperatureField (Rho, EnergyNew);
           ComputeRKappa (Rho);
           if ( RayTracingHeating ) {
-            if ( (qirrrt_timestep_counter % QIRRRT_NINT) == 0 ) {
+            if ( (qirrrt_timestep_counter % QIRRRTNINT) == 0 ) {
               ComputeRayTracingHeating(Rho, bsys);
               qirrrt_timestep_counter = 1;
             }

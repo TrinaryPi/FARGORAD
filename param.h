@@ -127,4 +127,4 @@ extern	char	POTENTIALTRANSITION[512];
 extern	real	POTENTIALTRANSITIONTIME;
 extern	char	VISCOUSHEATING[512];
 extern	char	PDIVVWORK[512];
-extern	int	QIRRRT_NINT;
+extern	int	QIRRRTNINT;
