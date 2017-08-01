@@ -82,6 +82,15 @@ OPT_gcc = -march=native -Wall -g -O0
 OPTSEQ_gcc = 
 PARAOPT_gcc =
 PARACC_gcc = mpicc
+
+# Intel Linux platform optimized for pentium 4 (otherwise edit
+#accordingly) FARGO_ARCH must be set to INTEL (sequential only, MPI
+#identical to generic IA32)
+CC_ccn_intel  = icc
+OPT_ccn_intel = -O$(OPT_LEVEL)  -g -march=native
+OPTSEQ_ccn_intel =
+PARAOPT_ccn_intel = -O$(OPT_LEVEL) -march=native 
+PARACC_ccn_intel = mpicc
 #
 #
 #
@@ -108,7 +117,7 @@ FFTWDUMMY	= fftw_dummy.o
 #
 ifeq ($(MACHINE),apocrita)
 	FFTW_PREFIX = /data/home/apw283/fftw
-	MPI_PREFIX = /opt/openmpi/1.6.5/intel/13.1
+	#MPI_PREFIX = /opt/openmpi/1.6.5/intel/13.1
 	ifeq ($(FARGO_ARCH),PGI)
 		FFTW_PREFIX = /data/home/apw283/fftw_pgi
 		MPI_PREFIX = /opt/openmpi/1.6.5/pgi/12.4
