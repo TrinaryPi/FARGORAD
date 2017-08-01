@@ -446,7 +446,7 @@ void SolveBinOrbits (bsys)
     omega=atan2(y,x);
   }
 
-  if (abs(omega) < 1.0E-6) omega = 0.0;
+  if (fabs(omega) < 1.0E-6) omega = 0.0;
   
   FILE *output;
   char name[256];
@@ -516,7 +516,7 @@ void AccreteOntoStars (Rho, dt, bsys)
     Rstar = sqrt(xs[k]*xs[k] + ys[k]*ys[k]);
     q = Ms[k]/(1-Ms[k]);
     RRoche = binsep*(0.38 + 0.2*log(q));
-    if (( bsys->acc[k] > 1e-10 ) && (( Rstar - RRoche > Rmed[0] ) && ( Rstar + RRoche < Rmed[nr-1] ))) {
+    if ( bsys->acc[k] > 1e-10 ) {
       
       /* Hereafter : initialization of W. Kley's parameters */
       facc = dt*(bsys->acc[k]);
@@ -530,7 +530,7 @@ void AccreteOntoStars (Rho, dt, bsys)
       i_max=nr-1;
       while ((Rsup[i_min] < Rstar-RRoche) && (i_min < nr)) i_min++;
       while ((Rinf[i_max] > Rstar+RRoche) && (i_max > 0)) i_max--;
-      angle = atan2 (Ystar, Xstar);
+      angle = atan2 (ys[k], xs[k]);
       j_min =(int)((real)ns/2.0/PI*(angle - 2.0*RRoche/Rstar));
       j_max =(int)((real)ns/2.0/PI*(angle + 2.0*RRoche/Rstar));
 
@@ -543,10 +543,10 @@ void AccreteOntoStars (Rho, dt, bsys)
           l   = jf+i*ns;
           xc = abs[l];
           yc = ord[l];
-          dx = Xstar-xc;
-          dy = Ystar-yc;
+          dx = xs[k]-xc;
+          dy = ys[k]-yc;
           distance = sqrt(dx*dx+dy*dy);
-            if (distance < frac1*RRoche) {
+           if ( distance < frac1*RRoche ) {
             deltaM = facc1*dens[l]*Surf[i];
             if (i < Zero_or_active) deltaM = 0.0;
             if (i >= Max_or_active) deltaM = 0.0;
@@ -554,7 +554,7 @@ void AccreteOntoStars (Rho, dt, bsys)
 #pragma omp atomic
             dMstar     += deltaM;
           }
-          if (distance < frac2*RRoche) {
+          if ( distance < frac2*RRoche ) {
             deltaM = facc2*dens[l]*Surf[i];
             if (i < Zero_or_active) deltaM = 0.0;
             if (i >= Max_or_active) deltaM = 0.0;

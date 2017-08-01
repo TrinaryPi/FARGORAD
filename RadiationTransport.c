@@ -120,8 +120,6 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
  			if ( Relative_Max ) {
  				norm_tmp[1] = 0.0;
  			}
-	 		/* Set Inner and Outer radii temperature (and temperature guess) values to constant boundary values */
-			// BoundaryConditionsFLD(TempGuess, TempGuess);
 
 			/* Black-loop over all even numbered cells */
 	 		for (i = One_or_active; i < MaxMO_or_active; i++) {
@@ -136,9 +134,9 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	 					lim = l-ns;
 	 					lip = l+ns;
 	 					if (j == 0) {
-	  						ljm = ns*(i+1)-1;
+	  					ljm = ns*(i+1)-1;
 	 					} else {
-	  						ljm = l-1;
+	  					ljm = l-1;
 	 					}
   					if (j == ns-1) {
   						ljp = i*ns;
@@ -149,32 +147,21 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
   					residual[l] = B[l]*Tguess[l] - U1[l]*Tguess[lim] - U2[l]*Tguess[lip] - U3[l]*Tguess[ljm] - U4[l]*Tguess[ljp] - Rij[l];
   					Tguess[l] = Tguess_old[l] - omegaOpt[i]*residual[l]/B[l];
 
-  					// change = fabs(Tguess[l] - Tguess_old[l])/fabs(Tguess[l]);
-  					// if ( change > maxchange ) {
-  					// 	maxchange = change;
-  					// }
-
   					/* norm  = |x^{k} - x^{k-1}| / |x^{k}| --> norm_relative_l2 */
 	  				if ( Relative_Diff ){
-	  					// norm_tmp[0] += pow(Tguess_old[l] - Tguess[l], 2.0)/pow(Tguess_old[l], 2.0);
 	  					norm_tmp[0] += pow(Tguess[l] - Tguess_old[l], 2.0)/pow(Tguess[l], 2.0);
 	  				}
 	  				/* norm = max(|x^{k} - x^{k-1}| / |x^{k}|) --> norm_relative_max */
 	  				if ( Relative_Max ) {
-	  					// norm_tmp[0] = fmax(norm_tmp[0], fabs(Tguess_old[l] - Tguess[l]));
-	  					// norm_tmp[1] = fmax(norm_tmp[1], fabs(Tguess_old[l]));
 	  					norm_tmp[0] = fmax(norm_tmp[0], fabs(Tguess[l] - Tguess_old[l])/fabs(Tguess[l]));
 	  				}
 		  			/* norm = |r^{k}| / |b{k}| --> norm_residual_l2 */
 		  			if ( Residual_Diff ) {
 	  					norm_tmp[0] += pow(residual[l], 2.0);
-	  					// norm_tmp[1] += pow(T[l],2.0);
 	  					norm_tmp[1] += pow(Rij[l], 2.0);
 						}
 	  				/* norm = max(|r^{k}| / |b{k}|) --> norm_residual_max */
 	  				if ( Residual_Max ) {
-	  					// norm_tmp[0] = fmax(norm_tmp[0], fabs(residual[l]));
-	  					// norm_tmp[1] = fmax(norm_tmp[1], fabs(T[l]));
 	  					norm_tmp[0] = fmax(norm_tmp[0], fabs(residual[l])/fabs(Rij[l]));
 	  				}
 	  				if ( Relative_Source ) {
@@ -224,32 +211,21 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	  				residual[l] = B[l]*Tguess[l] - U1[l]*Tguess[lim] - U2[l]*Tguess[lip] - U3[l]*Tguess[ljm] - U4[l]*Tguess[ljp] - Rij[l];
 	  				Tguess[l] = Tguess_old[l] - omegaOpt[i]*residual[l]/B[l];
 
-	  				// change = fabs(Tguess[l] - Tguess_old[l])/fabs(Tguess_old[l]);
-  					// if ( change > maxchange ) {
-  					// 	maxchange = change;
-  					// }
-
 	  				/* norm  = |x^{k} - x^{k-1}| / |x^{k}| --> norm_relative_l2 */
 	  				if ( Relative_Diff ){
-	  					// norm_tmp[0] += pow(Tguess_old[l] - Tguess[l], 2.0)/pow(Tguess_old[l], 2.0);
 	  					norm_tmp[0] += pow(Tguess[l] - Tguess_old[l], 2.0)/pow(Tguess[l], 2.0);
 	  				}
 	  				/* norm = max(|x^{k} - x^{k-1}| / |x^{k}|) --> norm_relative_max */
 	  				if ( Relative_Max ) {
-	  					// norm_tmp[0] = fmax(norm_tmp[0], fabs(Tguess_old[l] - Tguess[l]));
-	  					// norm_tmp[1] = fmax(norm_tmp[1], fabs(Tguess_old[l]));
 	  					norm_tmp[0] = fmax(norm_tmp[0], fabs(Tguess[l] - Tguess_old[l])/fabs(Tguess[l]));
 	  				}
 		  			/* norm = |r^{k}| / |b{k}| --> norm_residual_l2 */
 		  			if ( Residual_Diff ) {
 	  					norm_tmp[0] += pow(residual[l], 2.0);
-	  					// norm_tmp[1] += pow(T[l],2.0);
 	  					norm_tmp[1] += pow(Rij[l], 2.0);
 						}
 	  				/* norm = max(|r^{k}| / |b{k}|) --> norm_residual_max */
 	  				if ( Residual_Max ) {
-	  					// norm_tmp[0] = fmax(norm_tmp[0], fabs(residual[l]));
-	  					// norm_tmp[1] = fmax(norm_tmp[1], fabs(T[l]));
 	  					norm_tmp[0] = fmax(norm_tmp[0], fabs(residual[l])/fabs(Rij[l]));
 	  				}
 	  				if ( Relative_Source ) {
@@ -272,8 +248,6 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	 		/* norm = max(|x^{k} - x^{k-1}| / |x^{k}|) - norm_relative_max */
 	 		if ( Relative_Max ) {
 		 		MPI_Allreduce(&norm_tmp[0], &norm, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		 		// MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		 		// norm = norm_tmp[0]/norm_tmp[1];
 		 	}
 	 		/* norm = |r^{k}| / |b{k}| - norm_residual_l2 */
 	 		if ( Residual_Diff ) {
@@ -286,8 +260,6 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	 		/* norm = max(|r^{k}| / |b{k}|) - norm_residual_max */
 	 		if ( Residual_Max ) {
 		 		MPI_Allreduce(&norm_tmp[0], &norm, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		 		// MPI_Allreduce(&norm_tmp[1], &norm_tmp[1], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
-		 		// norm = norm_tmp[0]/norm_tmp[1];
 		 	}
 		 	if ( Relative_Source ) {
 		 		MPI_Allreduce(&norm_tmp[0], &norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -296,13 +268,6 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 		 	/* Overlap zones communication between neighbouring processors */
 	 		CommunicateFieldBoundaries(TempGuess);
 	  	iteration++;
-	  	// if ( RadiationDebug ) {
-	 		// 	int check_neg = 0;
-	   //  	int check_zero = 0;
-	   //  	char str[256];
-	   //  	sprintf(str, "SubStep4 - Iteration %d - norm = %g", iteration, norm);
-				// CheckField(TempGuess, check_neg, check_zero, str);
-	 		// }
 	 	}
 
 	 	NormAv += norm;
@@ -323,7 +288,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 			CheckField(Temperature, check_neg, check_zero, "SubStep4");
 	 	}
 
-	 	if (( iteration >= MAXITERATIONS ) && ( norm > tol )) {
+	 	if (( iteration >= MAXITERATIONS ) && ( norm > 10.0*tol )) {
 	 		masterprint("Max number of iterations has been reached without convergence. Exiting.\n");
 	 		masterprint("Norm = %g, Convergence Criteria = %g, Last MaxChange = %g\n", norm, tol, MaxChange);
 			DumpRadiationFields(Temperature);

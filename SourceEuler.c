@@ -29,7 +29,7 @@ extern boolean ZMPlus;
 real PhysicalTime=0.0, OmegaFrame, PhysicalTimeInitial;
 int FirstGasStepFLAG=1;
 static int AlreadyCrashed = 0, GasTimeStepsCFL;
-static int RadCoolTimeStepsCFL;
+
 extern boolean FastTransport, IsDisk, BinaryOn, HydroOn, LiveBodies;
 Pair DiskOnPrimaryAcceleration;
 Pair DiskOnBinaryAcceleration;
@@ -44,6 +44,7 @@ extern boolean ExplicitRadTransport;
 extern int FLDTimeStepsCFL;
 extern boolean ViscousHeating;
 extern boolean pdivvWork;
+int qirrrt_timestep_counter = 0;
 
 
 boolean DetectCrash (array)
@@ -385,7 +386,10 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           ComputeTemperatureField (Rho, EnergyNew);
           ComputeRKappa (Rho);
           if ( RayTracingHeating ) {
-            ComputeRayTracingHeating(Rho, bsys);
+            if ( (qirrrt_timestep_counter % QIRRRT_NINT) == 0 ) {
+              ComputeRayTracingHeating(Rho, bsys);
+              qirrrt_timestep_counter = 1;
+            }
           }
           if (( !RadTransport) && ( ExplicitRayTracingHeating )) {
             SubStep4_Explicit_Irr(dt);
@@ -419,6 +423,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     }
     PhysicalTime += dt;
     timestep_counter++;
+    qirrrt_timestep_counter++;
     if ( (timestep_counter % 100) == 0 ) {
     	timestep_counter = 0;
     	masterprint("t = %g", PhysicalTime);
@@ -1175,43 +1180,6 @@ void ComputeQplus (Rho)
 }
 
 
-real RadCoolConditionCFL(Energy)
-  // Input
-  PolarGrid *Energy;
-{
-  // Declaration
-  int i, j, l, nr, ns;
-  real *energy, *qminus;
-  real dedt_abs, new_dt=1.0E30, old_dt, factor;
-
-  // Assignment
-  nr = Energy->Nrad;
-  ns = Energy->Nsec;
-  energy = Energy->Field;
-  qminus = Qminus->Field;
-
-  // Constants
-  factor = 1.0;
-
-  // Function
-#pragma omp parallel for private(j, l, dedt, dt, newdt)
-  for (i = 0; i < nr; i++) {
-    for (j = 0; j < ns; j++) {
-      l = j + i*ns;
-      dedt_abs = fabs(qminus[l]);
-      old_dt = energy[l]/dedt_abs;
-      old_dt /= factor;
-      if ( old_dt < new_dt ) {
-        new_dt = old_dt;
-      }
-    }
-  }
-  
-  // Output
-  return new_dt;
-}
-
-
 void ComputeQterms (Rho, Vrad, Vtheta, Energy, bsys)
   // Input
   PolarGrid *Rho;
@@ -1238,104 +1206,6 @@ void ComputeQterms (Rho, Vrad, Vtheta, Energy, bsys)
   ComputeQplus(Rho);
 }
 
-
-void SubStep3_RadCool(Rho, Energy, dt_hydro)
-  // Input
-  PolarGrid *Rho;
-  PolarGrid *Energy;
-  real dt_hydro;
-{
-  // Declaration
-  int i, j, l, nr, ns, nstep;
-  real *density, *energy, *temperature, *qminus, *taueff, *densitycv;
-  real dt_remainder=0.0, dt, dt_rc, radcooltimestepcfl;
-  real term1, term2;
-  real constant1;
-
-  // Assignment
-  nr = Rho->Nrad;
-  ns = Rho->Nsec;
-  density = Rho->Field;
-  energy = Energy->Field;
-  temperature = Temperature->Field;
-  qminus = Qminus->Field;
-  taueff = OpticalDepthEff->Field;
-  densitycv = (real *)malloc(nr*ns*sizeof(real));
-
-  // Constants
-  constant1 = 2.0*STEFANK;
-
-  // Function
-  /* Convert energy density to temperature */
-  for (i = 0; i < nr; i++) {
-    for (j = 0; j < ns; j++) {
-      l = j+i*ns;
-      densitycv[l] = density[l]*CV;
-      temperature[l] = energy[l]/densitycv[l];
-    }
-  }
-  /* Evolve temperature field with analytical cooling term */
-  if ( AnalyticCooling ) {
-    for (i = 0; i < nr; i++) {
-      for (j = 0; j < ns; j++) {
-        l = j + i*ns;
-        term1 = pow(temperature[l], -3.0);
-        term2 = 3.0*constant1*dt_hydro/(densitycv[l]*taueff[l]);
-        temperature[l] = pow(term1 + term2, -1.0/3.0);
-      }
-    }
-  } else {
-  	radcooltimestepcfl = RadCoolConditionCFL(Energy);
-    MPI_Allreduce (&radcooltimestepcfl, &dt_rc, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    /* Find number of cooling timesteps per hydro timestep */
-    if ( dt_rc >  dt_hydro ) { 
-      RadCoolTimeStepsCFL = 1;
-      dt = dt_hydro;
-    } else {
-      RadCoolTimeStepsCFL = (int)(dt_hydro/dt_rc);
-      dt = dt_rc;
-      dt_remainder = dt_hydro - (real)(RadCoolTimeStepsCFL*dt_rc);
-    }
-    /* Carry out RadCoolTimeStepsCFL sub-cycles, with timestep dt */
-    for (nstep = 0; nstep < RadCoolTimeStepsCFL; nstep++) {
-      /* Evolve temperature field with local radiative cooling */
-      for (i = 0; i < nr; i++) {
-        for (j = 0; j < ns; j++) {
-          l = j+i*ns;
-          temperature[l] -= dt*qminus[l]/densitycv[l];
-        }
-      }
-      /* Update Rosseland Mean Opacity with new temperature */
-      ComputeRKappa(Rho);
-      /* Calculate new local radiative cooling */
-      ComputeQminus(Rho);
-    }
-    /* Update temperature to time level n+1 with last dt_remainder timestep */
-    if ( dt_remainder > 0.0 ) {
-      for (i = 0; i < nr; i++) {
-        for (j = 0; j < ns; j++) {
-          l = j+i*ns;
-          temperature[l] -= dt_remainder*qminus[l]/densitycv[l];
-        }
-      }
-    }
-  }
-  /* Convert temperature back to energy density */
-  for (i = 0; i < nr; i++) {
-    for (j = 0; j < ns; j++) {
-      l = j+i*ns;
-      energy[l] = temperature[l]*densitycv[l];
-    }
-  }
-  free(densitycv);
-
-  // Debug
-  if ( RadiationDebug ) {
-    int check_zero = 1;
-    int check_neg = 1;
-    CheckField(Energy, check_neg, check_zero, "SubStep3_RadCool");
-  }
-}
 
 void TestFieldOutput(rho, vrad, vtheta, energy, n)
   PolarGrid *rho;

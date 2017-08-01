@@ -336,6 +336,7 @@ void BinaryViscousInnerBoundary (Vrad, Vtheta, Rho, Energy)
   }
 }
 
+
 void OpenOuterBoundary (Vrad, Rho, Energy)
      PolarGrid *Vrad, *Rho, *Energy;
 {
