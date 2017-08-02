@@ -423,6 +423,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
     PhysicalTime += dt;
     timestep_counter++;
     qirrrt_timestep_counter++;
+
     if ( (timestep_counter % 100) == 0 ) {
     	timestep_counter = 0;
     	masterprint("t = %g", PhysicalTime);

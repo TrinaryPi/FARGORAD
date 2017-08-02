@@ -87,10 +87,10 @@ PARACC_gcc = mpicc
 #accordingly) FARGO_ARCH must be set to INTEL (sequential only, MPI
 #identical to generic IA32)
 CC_ccn_intel  = icc
-OPT_ccn_intel = -O$(OPT_LEVEL)  -g -march=native
+OPT_ccn_intel = -O$(OPT_LEVEL) -g -march=native -fast
 OPTSEQ_ccn_intel =
-PARAOPT_ccn_intel = -O$(OPT_LEVEL) -march=native 
-PARACC_ccn_intel = mpicc
+PARAOPT_ccn_intel = -O$(OPT_LEVEL) -march=native -fast
+PARACC_ccn_intel = mpiicc
 #
 #
 #
@@ -169,6 +169,9 @@ AUTOINCL    = param.h param_noex.h global_ex.h
 
 include	.config
 EXENAME = ../fargorad
+ifeq ($(FARGO_ARCH), ccn_intel)
+  EXENAME = ../fargorad_ccn_intel
+endif
 
 ARCHIVE		= $(EXENAME:../%=%.tar)
 ARCHIVECOMP	= $(EXENAME:../%=%.tar.gz)
