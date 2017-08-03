@@ -87,9 +87,9 @@ PARACC_gcc = mpicc
 #accordingly) FARGO_ARCH must be set to INTEL (sequential only, MPI
 #identical to generic IA32)
 CC_ccn_intel  = icc
-OPT_ccn_intel = -O$(OPT_LEVEL) -g -march=native -fast
+OPT_ccn_intel = -O$(OPT_LEVEL) -g -march=native
 OPTSEQ_ccn_intel =
-PARAOPT_ccn_intel = -O$(OPT_LEVEL) -march=native -fast
+PARAOPT_ccn_intel = -O$(OPT_LEVEL) -march=native
 PARACC_ccn_intel = mpiicc
 #
 #

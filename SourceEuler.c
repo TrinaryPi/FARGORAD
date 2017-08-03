@@ -237,6 +237,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
   gastimestepcfl = 1;
   int timestep_counter = 0;
   int qirrrt_timestep_counter = 0;
+  real dt_fld = TimeStep;
 
   if ( Adiabatic ) {
     ComputeSoundSpeed (Rho, Energy);
@@ -387,14 +388,22 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           if ( RayTracingHeating ) {
             if ( (qirrrt_timestep_counter % QIRRRTNINT) == 0 ) {
               ComputeRayTracingHeating(Rho, bsys);
-              qirrrt_timestep_counter = 1;
+              if ( !RadTransport ) {
+                qirrrt_timestep_counter = 1;
+              }
             }
           }
           if (( !RadTransport) && ( ExplicitRayTracingHeating )) {
             SubStep4_Explicit_Irr(dt);
             ComputeNewEnergyField(Rho, EnergyNew);
           } else {
-            SubStep4 (Rho, EnergyNew, bsys, dt);
+            if ( (qirrrt_timestep_counter % QIRRRTNINT) == 0 ) {
+              SubStep4 (Rho, EnergyNew, bsys, dt_fld);
+              dt_fld = dt;
+              qirrrt_timestep_counter = 1;
+            } else {
+              dt_fld += dt;
+            }
           }
         }
 	      ActualiseGas (Energy, EnergyNew);

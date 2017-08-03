@@ -323,11 +323,9 @@ void ReadVariables(filename)
       masterprint("Please check you want to override the default Temperature and Energy initialisation.\n");
     }
   }
-
   if (( *VISCOUSHEATING == 'N' ) || ( *VISCOUSHEATING == 'n' )) {
   	ViscousHeating = NO;
   }
-
   if (( *PDIVVWORK == 'N' ) || ( *PDIVVWORK == 'n' )) {
   	pdivvWork = NO;
   }
