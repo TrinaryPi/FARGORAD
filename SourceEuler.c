@@ -237,7 +237,8 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
   gastimestepcfl = 1;
   int timestep_counter = 0;
   int qirrrt_timestep_counter = 0;
-  real dt_fld = TimeStep;
+  int fld_flag = 0; /* Did an fld timestep occur this timestep? */
+  real dt_fld = 0;
 
   if ( Adiabatic ) {
     ComputeSoundSpeed (Rho, Energy);
@@ -284,6 +285,9 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       }
     }
     dtemp += dt;
+    if ( qirrrt_timestep_counter <= 1 ) {
+    	dt_fld = dt;
+    }
 
     DiskOnPrimaryAcceleration.x = 0.0;
     DiskOnPrimaryAcceleration.y = 0.0;
@@ -350,7 +354,9 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       } else {
       	if ( FLDTimeStepsCFL > 1) {
       		masterprint("%d.", FLDTimeStepsCFL);
-      	} else {
+      	} else if (( fld_flag == 1 ) && ( QIRRRTNINT > 1 )) {
+      		masterprint ("F");
+      	}	else {
 	      	masterprint (".");
 	      }
       }
@@ -389,7 +395,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
             if ( (qirrrt_timestep_counter % QIRRRTNINT) == 0 ) {
               ComputeRayTracingHeating(Rho, bsys);
               if ( !RadTransport ) {
-                qirrrt_timestep_counter = 1;
+                qirrrt_timestep_counter = 0;
               }
             }
           }
@@ -399,9 +405,11 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           } else {
             if ( (qirrrt_timestep_counter % QIRRRTNINT) == 0 ) {
               SubStep4 (Rho, EnergyNew, bsys, dt_fld);
+              fld_flag = 1;
               dt_fld = dt;
-              qirrrt_timestep_counter = 1;
+              qirrrt_timestep_counter = 0;
             } else {
+            	fld_flag = 0;
               dt_fld += dt;
             }
           }

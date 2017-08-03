@@ -26,7 +26,7 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	real *T, *Tguess, *Tguess_old;
 	real *B, *U1, *U2, *U3, *U4, *residual, *Rij;
 	real qirrrt=0.0, qirr=0.0;
-	real norm_tmp[2], norm, cvfac, tol;
+	real norm_tmp[2], norm, tol;
 	real norm_dem, norm_num;
 	real change, maxchange, MaxChange, MaxChangeFactor=1E-10;
 
@@ -44,8 +44,6 @@ void SubStep4 (gas_density, gas_energynew, bsys, timestep)
 	Tguess = TempGuess->Field;
 	Tguess_old = TempGuess_old->Field;
 
-	// Constants
-	cvfac = timestep*MU*(ADIABATICINDEX-1.0)/R;
 
 	// Function
 	if ( ExplicitRayTracingHeating ) {
