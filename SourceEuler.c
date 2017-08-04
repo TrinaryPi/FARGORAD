@@ -29,8 +29,9 @@ extern boolean ZMPlus;
 real PhysicalTime=0.0, OmegaFrame, PhysicalTimeInitial;
 int FirstGasStepFLAG=1;
 static int AlreadyCrashed = 0, GasTimeStepsCFL;
-static int qirrrt_timestep_counter = 0;
+static int qirrrt_timestep_counter = 1;
 static real dt_fld = 0.0;
+static int fld_flag = 0;
 
 extern boolean FastTransport, IsDisk, BinaryOn, HydroOn, LiveBodies;
 Pair DiskOnPrimaryAcceleration;
@@ -239,7 +240,7 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
   gastimestepcfl = 1;
   int timestep_counter = 0;
   
-  int fld_flag = 0; /* Did an fld timestep occur this timestep? */
+   /* Did an fld timestep occur this timestep? */
   
 
   if ( Adiabatic ) {
@@ -287,12 +288,15 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
       }
     }
     dtemp += dt;
-    if ( dtemp >= 0.999999999*DT) {
-    	qirrrt_timestep_counter = QIRRRTNINT;
-    	fld_flag = 1;
-    }
+    // if ( dtemp >= 0.999999999*DT) {
+    // 	qirrrt_timestep_counter = QIRRRTNINT;
+    // 	fld_flag = 1;
+    // }
     if ( qirrrt_timestep_counter <= 1 ) {
     	dt_fld = dt;
+    }
+    if ( (qirrrt_timestep_counter % QIRRRTNINT) == 0 ) {
+      fld_flag = 1;
     }
 
     DiskOnPrimaryAcceleration.x = 0.0;
@@ -411,9 +415,9 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
           } else {
             if ( (qirrrt_timestep_counter % QIRRRTNINT) == 0 ) {
               SubStep4 (Rho, EnergyNew, bsys, dt_fld);
-              fld_flag = 1;
               dt_fld = dt;
               qirrrt_timestep_counter = 0;
+              fld_flag = 0;
             } else {
             	fld_flag = 0;
               dt_fld += dt;
