@@ -128,3 +128,4 @@ extern	real	POTENTIALTRANSITIONTIME;
 extern	char	VISCOUSHEATING[512];
 extern	char	PDIVVWORK[512];
 extern	int	QIRRRTNINT;
+extern	char	TFLOOR[512];

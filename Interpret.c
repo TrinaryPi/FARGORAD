@@ -58,6 +58,7 @@ boolean					Relative_Source = NO;
 boolean					PotentialTransition = NO;
 boolean					ViscousHeating = YES;
 boolean					pdivvWork = YES;
+boolean					TFloor = NO;
 
 
 void var(name, ptr, type, necessary, deflt)
@@ -328,6 +329,9 @@ void ReadVariables(filename)
   }
   if (( *PDIVVWORK == 'N' ) || ( *PDIVVWORK == 'n' )) {
   	pdivvWork = NO;
+  }
+  if (( *TFLOOR == 'Y' ) || ( *TFLOOR == 'y' )) {
+  	TFloor = YES;
   }
 
   /* Self-Gravity Module Parameters */

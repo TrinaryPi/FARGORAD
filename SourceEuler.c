@@ -47,6 +47,7 @@ extern boolean ExplicitRadTransport;
 extern int FLDTimeStepsCFL;
 extern boolean ViscousHeating;
 extern boolean pdivvWork;
+extern boolean TFloor;
 
 
 boolean DetectCrash (array)
@@ -393,7 +394,8 @@ void AlgoGas (force, Rho, Vrad, Vtheta, Energy, Label, sys, bsys, Ecc, TimeStep)
         ComputePressureField (Rho, EnergyInt);
         ComputeQterms(Rho, Vrad, Vtheta, EnergyInt, bsys);
         SubStep3 (Rho, dt);
-        if ( RadCooling ) {
+        // if ( RadCooling ) {
+        if ( AnalyticCooling ) {
           SubStep3_RadCool(Rho, EnergyNew, dt);
         }
         if (( RadTransport ) || ( RayTracingHeating )) {
@@ -640,7 +642,7 @@ void SubStep3 (Rho, dt)
   real *dens, *pres, *energy, *energynew;
   real *divergence, *qplus, *qirr, *qdiv;
   real energypred, pressurepred, num, den;
-  real qirr_temp = 0.0, div_temp = 0.0;
+  real qirr_temp = 0.0, div_temp = 0.0, qminus_temp = 0.0, e_floor, T_floor;
 
   // Assignment
   nr = Rho->Nrad;
@@ -655,6 +657,10 @@ void SubStep3 (Rho, dt)
   if ( Irradiation ) {
     qirr = Qirr->Field;
   }
+
+  // Constant
+  T_floor = 10.0/TEMPCGS;
+  
 
   // Function
   /* In this substep we take into account  */
@@ -674,15 +680,29 @@ void SubStep3 (Rho, dt)
           qirr_temp = qirr[l];
         }
       }
+      if (( RadCooling ) && ( !AnalyticCooling )) {
+      	qminus_temp = Qminus->Field[l];
+      }
       if ( Cooling ) {
         num = EnergyMed[i]*dt*dens[l]/SigmaMed[i] + CoolingTimeMed[i]*energy[l] + dt*CoolingTimeMed[i]*(qirr_temp + qplus[l]-QplusMed[i]*dens[l]/SigmaMed[i]);
         den = dt + CoolingTimeMed[i] + (ADIABATICINDEX-1.0)*dt*CoolingTimeMed[i]*div_temp;
         energynew[l] = num/den;
       } else {
-        energypred = energy[l] + dt*(qirr_temp + qplus[l] - pres[l]*div_temp);
+        energypred = energy[l] + dt*(qirr_temp + qplus[l] - pres[l]*div_temp - qminus_temp);
+        if ( TFloor ) {
+        	e_floor = CV*dens[l]*T_floor;
+        	if ( energypred < e_floor ) {
+        		energypred = e_floor;
+        	}
+        }
         pressurepred = (ADIABATICINDEX - 1.0)*energypred;
         qdiv[l] = 0.5*(pres[l]+pressurepred)*div_temp;
-        energynew[l] = energy[l] + dt*(qirr_temp + qplus[l] - qdiv[l]);
+        energynew[l] = energy[l] + dt*(qirr_temp + qplus[l] - qdiv[l] - qminus_temp);
+        if ( TFloor ) {
+        	if ( energynew[l] < e_floor ) {
+        		energynew[l] = e_floor;
+        	}
+        }
       }
     }
   }
