@@ -15,6 +15,7 @@ extern real mlinner, mlouter;
 real Hp0, Hg0, Ht0;
 extern boolean VarDiscHeight;
 extern boolean NonKepBoundaries, HydroOn;
+extern boolean TFloor;
 
 real GasTotalMass (array)
      PolarGrid *array;
@@ -833,6 +834,9 @@ void ApplyBoundaryCondition (Vrad, Vtheta, Rho, Energy, bsys, step)
     if ( OuterSourceMass ) {
       ApplyOuterSourceMass (Rho, Vrad);
     }
+    if (( Adiabatic ) && ( TFloor )) {
+    	ApplyTFloor (Rho, Energy);
+    }
   }     
 }
 
@@ -853,4 +857,35 @@ void CorrectVtheta (vtheta, domega)
       vt[l] -= domega*Rmed[i];
     }
   }
+}
+
+void ApplyTFloor (density, energy)
+	// Input
+	PolarGrid *density;
+	PolarGrid *energy;
+{
+	// Declaration
+	int i, j, l, ns, nr;
+	real *sigma, *e;
+	real e_floor, T_floor;
+
+	// Assignment
+	nr = density->Nrad;
+	ns = density->Nsec;
+	sigma = density->Field;
+	e = energy->Field;
+
+	// Constant
+  T_floor = 10.0/TEMPCGS;
+
+	// Function
+	for (i = 0; i < nr; i++) {
+		for (j = 0; j < ns; j++) {
+			l = j+i*ns;
+			e_floor = CV*sigma[l]*T_floor;
+			if ( e[l] < e_floor ) {
+				e[l] = e_floor;
+			}
+		}
+	}
 }

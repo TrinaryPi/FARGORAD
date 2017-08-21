@@ -247,3 +247,4 @@ void freePolarGrid();
 void TestFieldOutput();
 
 void BinaryViscousInnerBoundary();
+void ApplyTFloor();

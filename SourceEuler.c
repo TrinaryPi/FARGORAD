@@ -659,7 +659,7 @@ void SubStep3 (Rho, dt)
   }
 
   // Constant
-  T_floor = 20.0/TEMPCGS;
+  T_floor = 10.0/TEMPCGS;
   
 
   // Function
