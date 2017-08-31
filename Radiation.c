@@ -251,7 +251,6 @@ void ComputeQirr (Sigma, bsys)
 				}
 				term1 = 0.4*Rs[s]/dist;
 				term2 = 0.286*H[l]/dist;
-				term2 = 0.0;
 				Wg = term1 + term2;
 				if ( dist == 0.0 ) {
 					qirrterm = 0.0;

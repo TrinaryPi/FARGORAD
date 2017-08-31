@@ -448,7 +448,7 @@ void ComputeRadTransCoeffs(gas_density, dt)
 			}
 
 			/* Coefficient for T_{ij}^{n+1} ie cell l at next timestep level */
-			B[l] = 1.0 + (U1[l] + U2[l] + U3[l] + U4[l]);
+			B[l] = 1.0 + U1[l] + U2[l] + U3[l] + U4[l];
  		}
  	}
 	

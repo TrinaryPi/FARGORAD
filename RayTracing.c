@@ -457,7 +457,7 @@ void ComputeBinarySourceRT (gas_density, bsys)
 		for (i = 0; i < GLOBALNRAD; i++) {
 			for (j = 0; j < ns; j++) {
 				l = j+i*ns;
-				dedt = Global_qrt[l];
+				dedt = 2.0*Global_height[l]*Global_qrt[l];
 				if ( dedt > 0.0 ) {
 					Global_qrt[l] = dedt/(CV*Global_sigma[l]);
 				} else {
@@ -816,7 +816,7 @@ void ComputeSingleSourceRT (gas_density)
 			l = j+i*ns;
 			QRT[l] = ComputeQRT(Fs, Rmed[i], gridTau[l], cellTau[l], dr, 0);
 			if ( QRT[l] > 0.0 ) {
-				QRT[l] = QRT[l]/(CV*Sigma[l]);
+				QRT[l] = 2.0*H[l]*QRT[l]/(CV*Sigma[l]);
 			} else {
 				QRT[l] = 0.0;
 			}
